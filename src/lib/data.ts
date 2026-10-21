@@ -63,3 +63,14 @@ export async function fetchUpcomingEvents(): Promise<Event[]> {
     .order('created_at', { ascending: false });
   return data ?? [];
 }
+
+// Most recent first: anything marked past, or whose date has gone by.
+export async function fetchPastEvents(): Promise<Event[]> {
+  const { data } = await supabase
+    .from('events')
+    .select('*')
+    .or(`is_past.eq.true,date.lt.${todayISO()}`)
+    .order('date', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false });
+  return data ?? [];
+}

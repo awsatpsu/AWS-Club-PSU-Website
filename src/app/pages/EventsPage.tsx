@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchAlbums, fetchUpcomingEvents, type AlbumWithCount } from "../../lib/data";
+import { fetchAlbums, fetchPastEvents, fetchUpcomingEvents, type AlbumWithCount } from "../../lib/data";
 import type { Event } from "../../lib/types";
 import { formatDate } from "../../lib/date";
 import { AlbumCard } from "../components/site/AlbumCard";
@@ -16,10 +16,12 @@ const TAG_COLORS: Record<string, string> = {
 export default function EventsPage() {
   const [albums, setAlbums] = useState<AlbumWithCount[] | null>(null);
   const [upcoming, setUpcoming] = useState<Event[]>([]);
+  const [past, setPast] = useState<Event[]>([]);
 
   useEffect(() => {
     fetchAlbums().then(setAlbums);
     fetchUpcomingEvents().then(setUpcoming);
+    fetchPastEvents().then(setPast);
   }, []);
 
   return (
@@ -34,21 +36,19 @@ export default function EventsPage() {
       {upcoming.length > 0 && (
         <section className="border-b border-line">
           <div className="max-w-[1320px] mx-auto px-4 sm:px-10 pt-[72px] pb-[72px] flex flex-col gap-8">
-            <div className="flex items-center gap-4">
-              <span className="w-4 h-4 bg-brand-orange" />
-              <h2 className="m-0 font-mono font-semibold text-[28px]">Coming up</h2>
-            </div>
+            <SectionTitle color="#FF9900" title="Coming up" />
             <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] max-sm:grid-cols-1 gap-px bg-line border border-line">
               {upcoming.map((ev) => (
-                <UpcomingEvent key={ev.id} event={ev} />
+                <EventItem key={ev.id} event={ev} />
               ))}
             </div>
           </div>
         </section>
       )}
 
-      <section>
-        <div className="max-w-[1320px] mx-auto px-4 sm:px-10 pt-[72px] pb-28">
+      <section className={past.length > 0 ? "border-b border-line" : ""}>
+        <div className={`max-w-[1320px] mx-auto px-4 sm:px-10 pt-[72px] flex flex-col gap-8 ${past.length > 0 ? "pb-[72px]" : "pb-28"}`}>
+          <SectionTitle color="#41B3FF" title="Photo albums" />
           {albums === null ? (
             <p className="m-0 font-mono text-fog">Loading…</p>
           ) : albums.length === 0 ? (
@@ -62,11 +62,33 @@ export default function EventsPage() {
           )}
         </div>
       </section>
+
+      {past.length > 0 && (
+        <section>
+          <div className="max-w-[1320px] mx-auto px-4 sm:px-10 pt-[72px] pb-28 flex flex-col gap-8">
+            <SectionTitle color="#A9B4C0" title="Past events" />
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] max-sm:grid-cols-1 gap-px bg-line border border-line">
+              {past.map((ev) => (
+                <EventItem key={ev.id} event={ev} past />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </>
   );
 }
 
-function UpcomingEvent({ event }: { event: Event }) {
+function SectionTitle({ color, title }: { color: string; title: string }) {
+  return (
+    <div className="flex items-center gap-4">
+      <span className="w-4 h-4" style={{ background: color }} />
+      <h2 className="m-0 font-mono font-semibold text-[28px]">{title}</h2>
+    </div>
+  );
+}
+
+function EventItem({ event, past = false }: { event: Event; past?: boolean }) {
   const meta = [formatDate(event.date), event.time, event.location].filter(Boolean).join(" · ");
   return (
     <div className="bg-ink p-7 flex flex-col gap-3">
@@ -79,8 +101,8 @@ function UpcomingEvent({ event }: { event: Event }) {
       <h3 className="m-0 font-mono text-[22px] font-semibold leading-tight">{event.title}</h3>
       {meta && <p className="m-0 font-mono text-[13px] text-fog">{meta}</p>}
       {event.description && <p className="m-0 text-mist">{event.description}</p>}
-      {event.capacity && <p className="m-0 font-mono text-[13px] text-fog">{event.capacity}</p>}
-      {event.rsvp_url && (
+      {!past && event.capacity && <p className="m-0 font-mono text-[13px] text-fog">{event.capacity}</p>}
+      {!past && event.rsvp_url && (
         <a
           href={event.rsvp_url}
           target="_blank"
