@@ -1,0 +1,37 @@
+@theme {
+  --color-ink: #151D25;
+  --color-ink-raised: #1C2630;
+  --color-line: #2B3642;
+  --color-grid: #222C36;
+  --color-fog: #A9B4C0;
+  --color-mist: #C9D2DB;
+  --color-slate: #3D4A57;
+  --color-slate-soft: #5A6775;
+  --color-line-light: #D5DBE1;
+  --color-brand-orange: #FF9900;
+  --color-brand-sky: #41B3FF;
+  --color-brand-mint: #00E582;
+  --color-brand-violet: #AC5BFF;
+  --color-brand-pink: #FF57E9;
+  --font-plex: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+.site {
+  font-family: var(--font-plex);
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.site :focus-visible {
+  outline: 2px solid var(--color-brand-sky);
+  outline-offset: 2px;
+}
+
+.site-grid-bg {
+  background-color: var(--color-ink);
+  background-image:
+    linear-gradient(var(--color-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
