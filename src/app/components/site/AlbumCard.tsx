@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import type { AlbumWithCount } from "../../../lib/data";
+import { formatDate } from "../../../lib/date";
 import { colorFor } from "../../site";
 import { ColorBlock } from "./Chrome";
 
@@ -31,7 +32,7 @@ export function AlbumCard({ album, compact = false }: { album: AlbumWithCount; c
         </ColorBlock>
       )}
       <span className={`flex flex-col gap-1.5 ${compact ? "px-6 pt-5 pb-6" : "px-6 pt-[22px] pb-[26px]"}`}>
-        {album.date && <span className="font-mono text-[13px] text-fog">{album.date}</span>}
+        {album.date && <span className="font-mono text-[13px] text-fog">{formatDate(album.date)}</span>}
         <span className={`font-mono font-semibold ${compact ? "text-xl" : "text-[22px]"}`}>{album.label}</span>
         {!compact && <span className="mt-2.5 font-mono text-[15px] text-brand-sky">View album →</span>}
       </span>

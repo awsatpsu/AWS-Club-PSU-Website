@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchAlbums, fetchUpcomingEvents, type AlbumWithCount } from "../../lib/data";
 import type { Event } from "../../lib/types";
+import { formatDate } from "../../lib/date";
 import { AlbumCard } from "../components/site/AlbumCard";
 import { PageHero } from "../components/site/Chrome";
 
@@ -66,7 +67,7 @@ export default function EventsPage() {
 }
 
 function UpcomingEvent({ event }: { event: Event }) {
-  const meta = [event.date, event.time, event.location].filter(Boolean).join(" · ");
+  const meta = [formatDate(event.date), event.time, event.location].filter(Boolean).join(" · ");
   return (
     <div className="bg-ink p-7 flex flex-col gap-3">
       {event.tag && (

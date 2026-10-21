@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { Event, TeamMember, GalleryAlbum, GalleryPhoto } from './types';
+import { todayISO } from './date';
 
 export interface AlbumWithCount extends GalleryAlbum {
   photo_count: number;
@@ -16,7 +17,7 @@ export async function fetchAlbums(limit?: number): Promise<AlbumWithCount[]> {
   let query = supabase
     .from('gallery_albums')
     .select('*, gallery_photos(count)')
-    .order('sort_order')
+    .order('date', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false });
   if (limit) query = query.limit(limit);
   const { data } = await query;
@@ -51,12 +52,14 @@ export async function fetchTeam(): Promise<TeamMember[]> {
   return data ?? [];
 }
 
+// Soonest first; an event drops off once its date has passed, even if not marked past.
 export async function fetchUpcomingEvents(): Promise<Event[]> {
   const { data } = await supabase
     .from('events')
     .select('*')
     .eq('is_past', false)
-    .order('sort_order')
+    .or(`date.is.null,date.gte.${todayISO()}`)
+    .order('date', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: false });
   return data ?? [];
 }

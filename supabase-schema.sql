@@ -4,7 +4,7 @@ create table if not exists events (
   id uuid default gen_random_uuid() primary key,
   title text not null,
   description text default '',
-  date text default '',
+  date date,
   time text default '',
   location text default '',
   capacity text default '',
@@ -28,7 +28,7 @@ create table if not exists team_members (
 create table if not exists gallery_albums (
   id uuid default gen_random_uuid() primary key,
   label text not null,
-  date text default '',
+  date date,
   cover_image_url text,
   sort_order int default 0,
   created_at timestamptz default now()
@@ -66,3 +66,24 @@ create policy "Auth write events" on events for all using (auth.role() = 'authen
 create policy "Auth write team" on team_members for all using (auth.role() = 'authenticated');
 create policy "Auth write albums" on gallery_albums for all using (auth.role() = 'authenticated');
 create policy "Auth write photos" on gallery_photos for all using (auth.role() = 'authenticated');
+
+-- Storage buckets for uploaded images (public read; only signed-in admins can write)
+
+insert into storage.buckets (id, name, public)
+values ('gallery', 'gallery', true), ('team', 'team', true)
+on conflict (id) do update set public = true;
+
+drop policy if exists "Auth upload images" on storage.objects;
+drop policy if exists "Auth update images" on storage.objects;
+drop policy if exists "Auth delete images" on storage.objects;
+
+create policy "Auth upload images" on storage.objects for insert to authenticated
+  with check (bucket_id in ('gallery', 'team'));
+create policy "Auth update images" on storage.objects for update to authenticated
+  using (bucket_id in ('gallery', 'team'));
+create policy "Auth delete images" on storage.objects for delete to authenticated
+  using (bucket_id in ('gallery', 'team'));
+-- Supabase's remove() also needs select on the objects being deleted.
+drop policy if exists "Auth read images" on storage.objects;
+create policy "Auth read images" on storage.objects for select to authenticated
+  using (bucket_id in ('gallery', 'team'));

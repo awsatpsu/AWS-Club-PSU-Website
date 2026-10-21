@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router";
 import { fetchAlbum, fetchPhotos, type AlbumWithCount } from "../../lib/data";
 import type { GalleryPhoto } from "../../lib/types";
 import { photoCountLabel } from "../components/site/AlbumCard";
+import { formatDate } from "../../lib/date";
 import { colorFor, pad } from "../site";
 
 export default function AlbumPage() {
@@ -39,7 +40,7 @@ export default function AlbumPage() {
               <div className="flex-[1_1_520px] min-w-0 flex flex-col gap-3.5">
                 <div className="flex items-center gap-3">
                   <span className="w-4 h-4" style={{ background: color }} />
-                  {album?.date && <span className="font-mono text-sm text-fog">{album.date}</span>}
+                  {album?.date && <span className="font-mono text-sm text-fog">{formatDate(album.date)}</span>}
                 </div>
                 <h1 className="m-0 font-mono font-semibold text-[36px] sm:text-[52px] leading-[1.1] tracking-[-0.02em]">
                   {album?.label ?? " "}

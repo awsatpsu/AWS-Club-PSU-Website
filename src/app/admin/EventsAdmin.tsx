@@ -3,13 +3,16 @@ import { Plus, Pencil, Trash2, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { TAG_COLORS, TAG_OPTIONS } from '../../lib/types';
 import type { Event } from '../../lib/types';
+import { formatDate, todayISO } from '../../lib/date';
 
 type EventDraft = Omit<Event, 'id'>;
+
+const isPast = (e: Event) => e.is_past || (!!e.date && e.date < todayISO());
 
 const BLANK: EventDraft = {
   title: '',
   description: '',
-  date: '',
+  date: null,
   time: '',
   location: '',
   capacity: '',
@@ -79,10 +82,11 @@ function Form({
         <div className="grid grid-cols-2 gap-4">
           <Field label="Date">
             <input
-              className={inputCls}
-              value={form.date}
-              onChange={e => set('date', e.target.value)}
-              placeholder="April 12, 2026"
+              className={`${inputCls} [color-scheme:dark]`}
+              type="date"
+              required
+              value={form.date ?? ''}
+              onChange={e => set('date', e.target.value || null)}
             />
           </Field>
           <Field label="Time">
@@ -119,27 +123,17 @@ function Form({
             type="url"
           />
         </Field>
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Tag">
-            <select
-              className={`${inputCls} bg-[#111]`}
-              value={form.tag}
-              onChange={e => set('tag', e.target.value)}
-            >
-              {TAG_OPTIONS.map(t => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Sort order (lower = first)">
-            <input
-              className={inputCls}
-              type="number"
-              value={form.sort_order}
-              onChange={e => set('sort_order', Number(e.target.value))}
-            />
-          </Field>
-        </div>
+        <Field label="Tag">
+          <select
+            className={`${inputCls} bg-[#111]`}
+            value={form.tag}
+            onChange={e => set('tag', e.target.value)}
+          >
+            {TAG_OPTIONS.map(t => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+        </Field>
         <label className="flex items-center gap-2.5 cursor-pointer select-none">
           <input
             type="checkbox"
@@ -149,6 +143,9 @@ function Form({
           />
           <span className="text-sm text-[#aaa]">Mark as past event</span>
         </label>
+        <p className="text-xs text-[#555]">
+          Events are sorted by date and leave the public "Coming up" list automatically once their date has passed.
+        </p>
         {form.tag && (
           <p className="text-xs text-[#555]">
             Tag preview:&nbsp;
@@ -161,7 +158,7 @@ function Form({
       <div className="mt-8 flex gap-3">
         <button
           onClick={() => onSave(form)}
-          disabled={saving || !form.title}
+          disabled={saving || !form.title || !form.date}
           className="px-5 py-2 bg-[#FF9900] text-black font-bold text-sm rounded hover:opacity-90 disabled:opacity-50 transition-opacity"
         >
           {saving ? 'Saving…' : 'Save'}
@@ -189,7 +186,7 @@ export default function EventsAdmin() {
     const { data } = await supabase
       .from('events')
       .select('*')
-      .order('sort_order', { ascending: true })
+      .order('date', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
     setEvents(data ?? []);
     setLoading(false);
@@ -261,9 +258,9 @@ export default function EventsAdmin() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white truncate">{event.title}</p>
                 <p className="text-xs text-[#555] mt-0.5">
-                  {event.date}
+                  {formatDate(event.date)}
                   {event.tag ? ` · ${event.tag}` : ''}
-                  {event.is_past ? ' · Past' : ' · Upcoming'}
+                  {isPast(event) ? ' · Past' : ' · Upcoming'}
                   {event.rsvp_url ? ' · RSVP link set' : ''}
                 </p>
               </div>

@@ -2,7 +2,7 @@ export interface Event {
   id: string;
   title: string;
   description: string;
-  date: string;
+  date: string | null; // YYYY-MM-DD
   time: string;
   location: string;
   capacity: string;
@@ -24,7 +24,7 @@ export interface TeamMember {
 export interface GalleryAlbum {
   id: string;
   label: string;
-  date: string;
+  date: string | null; // YYYY-MM-DD
   cover_image_url: string | null;
   sort_order: number;
 }
