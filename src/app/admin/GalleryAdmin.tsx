@@ -3,29 +3,9 @@ import { Plus, Trash2, ArrowLeft, Upload, Pencil, Camera, Images, X } from 'luci
 import { supabase } from '../../lib/supabase';
 import type { Event, GalleryAlbum, GalleryPhoto } from '../../lib/types';
 import { formatDate } from '../../lib/date';
-import { ImageDropZone, useBlockWindowDrop, usePasteFiles } from './ImageDropZone';
+import { IMAGE_ACCEPT, ImageDropZone, prepareImages, useBlockWindowDrop, usePasteFiles } from './ImageDropZone';
 
 const UPLOAD_CONCURRENCY = 4;
-
-// Formats a browser can't display; iPhones save photos as HEIC unless set to "Most Compatible".
-const UNSUPPORTED = /\.(heic|heif)$/i;
-
-function filterImages(files: File[]): { images: File[]; notes: string[] } {
-  const images: File[] = [];
-  const heic: string[] = [];
-  let other = 0;
-  for (const f of files) {
-    if (UNSUPPORTED.test(f.name) || /heic|heif/i.test(f.type)) heic.push(f.name);
-    else if (f.type.startsWith('image/')) images.push(f);
-    else other++;
-  }
-  const notes: string[] = [];
-  if (heic.length) {
-    notes.push(`Skipped ${heic.length} HEIC photo(s) browsers can't show (${heic.slice(0, 3).join(', ')}${heic.length > 3 ? '…' : ''}) — convert them to JPG first.`);
-  }
-  if (other) notes.push(`Skipped ${other} non-image file(s).`);
-  return { images, notes };
-}
 
 // Collects files from a drop, walking into any dropped folders.
 async function filesFromDrop(dt: DataTransfer): Promise<File[]> {
@@ -85,7 +65,7 @@ export default function GalleryAdmin() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [progress, setProgress] = useState<{ label: string; done: number; total: number } | null>(null);
   const [dragging, setDragging] = useState(false);
   const [albumForm, setAlbumForm] = useState<AlbumDraft>(BLANK_ALBUM);
   const [batch, setBatch] = useState<BatchItem[]>([]);
@@ -205,7 +185,7 @@ export default function GalleryAdmin() {
   const uploadToAlbum = async (album: GalleryAlbum, sources: File[], existingCount: number): Promise<string[]> => {
     setUploading(true);
     setUploadError('');
-    setProgress({ done: 0, total: sources.length });
+    setProgress({ label: 'Uploading', done: 0, total: sources.length });
     const errors: string[] = [];
     let firstUrl: string | null = null;
     let next = 0;
@@ -244,8 +224,19 @@ export default function GalleryAdmin() {
       : [];
   };
 
+  // Converts any HEIC photos, showing progress in the drop zone meanwhile.
+  const prepare = async (picked: File[]) => {
+    setUploading(true);
+    setUploadError('');
+    const result = await prepareImages(picked, (done, total) =>
+      setProgress({ label: 'Converting HEIC', done, total }));
+    setProgress(null);
+    setUploading(false);
+    return result;
+  };
+
   const uploadPhotos = async (picked: File[]) => {
-    const { images: sources, notes } = filterImages(picked);
+    const { images: sources, notes } = await prepare(picked);
     if (!selectedAlbum || sources.length === 0) {
       setUploadError(notes.join(' '));
       return;
@@ -257,8 +248,8 @@ export default function GalleryAdmin() {
   };
 
   // ── Batch upload: pick many photos, choose their event, upload together ──
-  const addToBatch = (picked: File[]) => {
-    const { images, notes } = filterImages(picked);
+  const addToBatch = async (picked: File[]) => {
+    const { images, notes } = await prepare(picked);
     setUploadError(notes.join(' '));
     setBatch(prev => {
       // Picking the same file twice shouldn't add it twice.
@@ -455,7 +446,7 @@ export default function GalleryAdmin() {
         <input
           ref={batchFileRef}
           type="file"
-          accept="image/*"
+          accept={IMAGE_ACCEPT}
           multiple
           className="hidden"
           onChange={e => {
@@ -487,7 +478,7 @@ export default function GalleryAdmin() {
         >
           {progress ? (
             <>
-              <p className="text-white text-sm font-medium">Uploading {progress.done} / {progress.total}…</p>
+              <p className="text-white text-sm font-medium">{progress.label} {progress.done} / {progress.total}…</p>
               <div className="w-64 h-1.5 bg-[#1e1e1e] rounded overflow-hidden">
                 <div
                   className="h-full bg-[#FF9900] transition-[width]"
@@ -502,7 +493,7 @@ export default function GalleryAdmin() {
                 {dragging ? 'Drop to add' : batch.length ? 'Add more photos' : 'Drag & drop photos or a folder here'}
               </p>
               <p className="text-[#555] text-xs">
-                paste with Ctrl+V (⌘V), or click to choose files — hold Ctrl (⌘ on Mac) or Shift to select many · JPG, PNG, WebP, GIF
+                paste with Ctrl+V (⌘V), or click to choose files — hold Ctrl (⌘ on Mac) or Shift to select many · JPG, PNG, WebP, GIF, HEIC
               </p>
             </>
           )}
@@ -578,7 +569,7 @@ export default function GalleryAdmin() {
         <input
           ref={photosFileRef}
           type="file"
-          accept="image/*"
+          accept={IMAGE_ACCEPT}
           multiple
           className="hidden"
           onChange={e => {
@@ -610,7 +601,7 @@ export default function GalleryAdmin() {
         >
           {progress ? (
             <>
-              <p className="text-white text-sm font-medium">Uploading {progress.done} / {progress.total}…</p>
+              <p className="text-white text-sm font-medium">{progress.label} {progress.done} / {progress.total}…</p>
               <div className="w-64 h-1.5 bg-[#1e1e1e] rounded overflow-hidden">
                 <div
                   className="h-full bg-[#FF9900] transition-[width]"
@@ -624,7 +615,7 @@ export default function GalleryAdmin() {
               <p className="text-white text-sm font-medium">
                 {dragging ? 'Drop to upload' : 'Drag & drop photos or a folder here'}
               </p>
-              <p className="text-[#555] text-xs">paste with Ctrl+V (⌘V), or click to choose files · JPG, PNG, WebP, GIF</p>
+              <p className="text-[#555] text-xs">paste with Ctrl+V (⌘V), or click to choose files · JPG, PNG, WebP, GIF, HEIC</p>
             </>
           )}
         </button>
