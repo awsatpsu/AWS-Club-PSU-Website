@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Pencil, Trash2, ArrowLeft, Upload } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Pencil, Trash2, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { TeamMember } from '../../lib/types';
+import { ImageDropZone } from './ImageDropZone';
 
 type MemberDraft = Omit<TeamMember, 'id'>;
 
@@ -38,7 +39,6 @@ function Form({
 }) {
   const [form, setForm] = useState<MemberDraft>(initial);
   const [uploading, setUploading] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const set = <K extends keyof MemberDraft>(k: K, v: MemberDraft[K]) =>
     setForm(prev => ({ ...prev, [k]: v }));
@@ -94,32 +94,7 @@ function Form({
           />
         </Field>
         <Field label="Photo">
-          {form.photo_url && (
-            <img
-              src={form.photo_url}
-              alt="Preview"
-              className="w-16 h-16 object-cover rounded mb-2 border border-[#2a2a2a]"
-            />
-          )}
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={e => {
-              const file = e.target.files?.[0];
-              if (file) handlePhotoUpload(file);
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            className="flex items-center gap-2 px-3 py-2 border border-[#2a2a2a] text-[#888] text-sm rounded hover:border-[#444] hover:text-white disabled:opacity-50 transition-colors"
-          >
-            <Upload className="w-3.5 h-3.5" />
-            {uploading ? 'Uploading…' : form.photo_url ? 'Replace photo' : 'Upload photo'}
-          </button>
+          <ImageDropZone imageUrl={form.photo_url} uploading={uploading} onFile={handlePhotoUpload} />
         </Field>
         <Field label="Sort order (lower = first)">
           <input

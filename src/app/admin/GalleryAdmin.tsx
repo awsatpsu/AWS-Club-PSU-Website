@@ -3,6 +3,7 @@ import { Plus, Trash2, ArrowLeft, Upload, Pencil, Camera, Images, X } from 'luci
 import { supabase } from '../../lib/supabase';
 import type { Event, GalleryAlbum, GalleryPhoto } from '../../lib/types';
 import { formatDate } from '../../lib/date';
+import { ImageDropZone, useBlockWindowDrop, usePasteFiles } from './ImageDropZone';
 
 const UPLOAD_CONCURRENCY = 4;
 
@@ -90,7 +91,6 @@ export default function GalleryAdmin() {
   const [batch, setBatch] = useState<BatchItem[]>([]);
   const [batchEventId, setBatchEventId] = useState('');
 
-  const coverFileRef = useRef<HTMLInputElement>(null);
   const photosFileRef = useRef<HTMLInputElement>(null);
   const batchFileRef = useRef<HTMLInputElement>(null);
 
@@ -142,16 +142,14 @@ export default function GalleryAdmin() {
   };
 
   // A file dropped outside the drop zone would make the browser open it and leave the page.
-  useEffect(() => {
-    if (view !== 'photos' && view !== 'batch') return;
-    const block = (e: DragEvent) => e.preventDefault();
-    window.addEventListener('dragover', block);
-    window.addEventListener('drop', block);
-    return () => {
-      window.removeEventListener('dragover', block);
-      window.removeEventListener('drop', block);
-    };
-  }, [view]);
+  useBlockWindowDrop(view === 'photos' || view === 'batch');
+
+  // Ctrl+V / ⌘V adds copied images, same as dropping them.
+  usePasteFiles(files => {
+    if (uploading) return;
+    if (view === 'photos') uploadPhotos(files);
+    else addToBatch(files);
+  }, view === 'photos' || view === 'batch');
 
   const openAlbum = (album: GalleryAlbum) => {
     setSelectedAlbum(album);
@@ -388,20 +386,7 @@ export default function GalleryAdmin() {
             />
           </Field>
           <Field label="Cover photo">
-            {albumForm.cover_image_url && (
-              <img src={albumForm.cover_image_url} className="w-full h-36 object-cover rounded mb-2 border border-[#2a2a2a]" />
-            )}
-            <input ref={coverFileRef} type="file" accept="image/*" className="hidden"
-              onChange={e => { const f = e.target.files?.[0]; if (f) uploadCover(f); }} />
-            <button
-              type="button"
-              onClick={() => coverFileRef.current?.click()}
-              disabled={uploading}
-              className="flex items-center gap-2 px-3 py-2 border border-[#2a2a2a] text-[#888] text-sm rounded hover:border-[#444] hover:text-white disabled:opacity-50 transition-colors"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              {uploading ? 'Uploading…' : albumForm.cover_image_url ? 'Replace cover' : 'Upload cover'}
-            </button>
+            <ImageDropZone imageUrl={albumForm.cover_image_url} uploading={uploading} onFile={uploadCover} noun="cover" />
           </Field>
         </div>
         <p className="mt-3 text-xs text-[#555]">Each album belongs to one event. Albums are listed newest date first.</p>
@@ -517,7 +502,7 @@ export default function GalleryAdmin() {
                 {dragging ? 'Drop to add' : batch.length ? 'Add more photos' : 'Drag & drop photos or a folder here'}
               </p>
               <p className="text-[#555] text-xs">
-                or click to choose files — hold Ctrl (⌘ on Mac) or Shift to select many · JPG, PNG, WebP, GIF
+                paste with Ctrl+V (⌘V), or click to choose files — hold Ctrl (⌘ on Mac) or Shift to select many · JPG, PNG, WebP, GIF
               </p>
             </>
           )}
@@ -639,7 +624,7 @@ export default function GalleryAdmin() {
               <p className="text-white text-sm font-medium">
                 {dragging ? 'Drop to upload' : 'Drag & drop photos or a folder here'}
               </p>
-              <p className="text-[#555] text-xs">or click to choose files · JPG, PNG, WebP, GIF</p>
+              <p className="text-[#555] text-xs">paste with Ctrl+V (⌘V), or click to choose files · JPG, PNG, WebP, GIF</p>
             </>
           )}
         </button>
