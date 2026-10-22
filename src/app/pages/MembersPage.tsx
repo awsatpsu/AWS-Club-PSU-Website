@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { Link } from "react-router";
 import { fetchTeam } from "../../lib/data";
 import { TEAM_GROUP_LABELS, type TeamGroup } from "../../lib/types";
@@ -51,6 +51,9 @@ export default function MembersPage() {
     }))
     .filter((g) => g.members.length > 0);
 
+  // Cards deal in one after another across both groups.
+  let dealt = 0;
+
   const toggle = (id: string) => setFlipped((f) => ({ ...f, [id]: !f[id] }));
 
   return (
@@ -70,7 +73,7 @@ export default function MembersPage() {
                   type="button"
                   aria-pressed={on}
                   onClick={() => setFilter(f.id)}
-                  className={`px-5 py-3.5 text-[15px] font-normal cursor-pointer ${
+                  className={`sbg-chip px-5 py-3.5 text-[15px] font-normal cursor-pointer ${
                     on ? "bg-white text-ink" : "bg-ink text-white hover:bg-ink-raised"
                   }`}
                 >
@@ -104,6 +107,7 @@ export default function MembersPage() {
                       key={member.id}
                       member={member}
                       color={color}
+                      delay={`${(0.35 + Math.min(dealt++, 16) * 0.06).toFixed(2)}s`}
                       flipped={!!flipped[member.id]}
                       onFlip={() => toggle(member.id)}
                     />
@@ -120,8 +124,8 @@ export default function MembersPage() {
           <p className="m-0 flex-[1_1_560px] font-mono text-[28px] sm:text-4xl leading-[1.2] font-medium">
             Want your card on this page? Every member can lead.
           </p>
-          <Link to={JOIN_LINK} className="bg-ink text-white no-underline font-mono font-bold text-[17px] px-8 py-[18px] hover:bg-ink-raised">
-            Join us →
+          <Link to={JOIN_LINK} className="sbg-btn bg-ink text-white no-underline font-mono font-bold text-[17px] px-8 py-[18px]">
+            Join us <span className="sbg-arrow" aria-hidden="true">→</span>
           </Link>
         </div>
       </section>
@@ -132,11 +136,13 @@ export default function MembersPage() {
 function FlipCard({
   member,
   color,
+  delay,
   flipped,
   onFlip,
 }: {
   member: TeamMember;
   color: string;
+  delay: string;
   flipped: boolean;
   onFlip: () => void;
 }) {
@@ -147,7 +153,7 @@ function FlipCard({
     : "";
 
   return (
-    <div className="h-[380px] perspective-[1200px]">
+    <div className="sbg-card h-[380px] perspective-[1200px]" style={{ "--c": color, animationDelay: delay } as CSSProperties}>
       <div
         className={`relative w-full h-full transform-3d transition-transform duration-[550ms] ease-[cubic-bezier(0.2,0.7,0.2,1)] ${
           flipped ? "rotate-y-180" : ""
@@ -180,7 +186,7 @@ function FlipCard({
             <span className="flex justify-between items-center gap-2">
               <span className="font-mono text-sm text-mist">{member.title}</span>
               <span aria-hidden="true" className="font-mono text-[13px] text-fog">
-                ↻ flip
+                <span className="sbg-flipicon">↻</span> flip
               </span>
             </span>
           </span>

@@ -41,14 +41,15 @@ export default function AlbumPage() {
             <div className="max-w-[1320px] mx-auto px-4 sm:px-10 pt-10 pb-14 flex flex-col gap-7">
               <Link
                 to={fromEvents ? "/events" : "/gallery"}
-                className="self-start border border-line bg-ink text-white no-underline font-mono text-[15px] px-[18px] py-3 hover:border-fog"
+                className="sbg-outline sbg-back sbg-up self-start border border-line text-white no-underline font-mono text-[15px] px-[18px] py-3"
+                style={{ animationDelay: "0.05s" }}
               >
-                {fromEvents ? "← All events" : "← Gallery"}
+                <span className="sbg-arrow" aria-hidden="true">←</span> {fromEvents ? "All events" : "Gallery"}
               </Link>
               {album === null ? (
                 <h1 className="m-0 font-mono font-semibold text-[40px] leading-[1.1]">Album not found.</h1>
               ) : (
-                <div className="flex flex-wrap items-end justify-between gap-6">
+                <div className="sbg-up flex flex-wrap items-end justify-between gap-6" style={{ animationDelay: "0.15s" }}>
                   <div className="flex-[1_1_520px] min-w-0 flex flex-col gap-3.5">
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="w-4 h-4" style={{ background: color }} />
@@ -85,7 +86,8 @@ export default function AlbumPage() {
                         type="button"
                         onClick={() => setOpen(i)}
                         aria-label={`View photo ${i + 1} of ${photos.length}`}
-                        className={`group relative overflow-hidden border-0 p-0 bg-ink-raised cursor-zoom-in ${
+                        style={{ animationDelay: `${(0.25 + Math.min(i, 40) * 0.045).toFixed(3)}s` }}
+                        className={`sbg-photo relative overflow-hidden border-0 p-0 bg-ink-raised cursor-zoom-in ${
                           i % 7 === 0 ? "col-span-2 row-span-2" : ""
                         }`}
                       >
@@ -93,7 +95,7 @@ export default function AlbumPage() {
                           src={photo.image_url}
                           alt={photo.caption || ""}
                           loading="lazy"
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                          className="w-full h-full object-cover"
                         />
                       </button>
                     ))}
@@ -152,14 +154,14 @@ function Lightbox({
   });
 
   const iconButton =
-    "shrink-0 flex items-center justify-center border border-white bg-transparent text-white cursor-pointer hover:bg-white hover:text-ink";
+    "sbg-outline shrink-0 flex items-center justify-center border border-white text-white cursor-pointer";
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label="Photo viewer"
-      className="fixed inset-0 z-50 bg-[rgba(10,14,18,0.94)] flex flex-col p-4 sm:p-6 gap-4"
+      className="sbg-lightbox fixed inset-0 z-50 bg-[rgba(10,14,18,0.94)] flex flex-col p-4 sm:p-6 gap-4"
     >
       <div className="flex items-center justify-between gap-4 font-mono text-[15px]">
         <span>
@@ -178,7 +180,8 @@ function Lightbox({
           </svg>
         </button>
         <div className="flex-1 h-full min-w-0 flex flex-col items-center justify-center gap-3">
-          <img src={photo.image_url} alt={photo.caption || ""} className="max-w-full min-h-0 flex-1 object-contain" />
+          {/* Keyed by position so each new photo pops in. */}
+          <img key={index} src={photo.image_url} alt={photo.caption || ""} className="sbg-lbimg max-w-full min-h-0 flex-1 object-contain" />
           {photo.caption && <p className="m-0 text-mist text-center">{photo.caption}</p>}
         </div>
         <button type="button" onClick={next} aria-label="Next photo" className={`${iconButton} w-11 h-11 sm:w-14 sm:h-14`}>

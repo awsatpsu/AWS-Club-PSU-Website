@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { fetchAlbums, fetchPastEvents, fetchUpcomingEvents, type AlbumWithCount } from "../../lib/data";
 import type { Event } from "../../lib/types";
 import { formatDate } from "../../lib/date";
-import { albumPath, EventTag, photoCountLabel } from "../components/site/AlbumCard";
+import { albumPath, dealDelay, EventTag, photoCountLabel } from "../components/site/AlbumCard";
 import { PageHero } from "../components/site/Chrome";
 import { FlipCard } from "../components/site/FlipCard";
 import { colorFor } from "../site";
@@ -74,9 +74,10 @@ function EventGrid({
 }) {
   return (
     <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] max-sm:grid-cols-1 gap-px bg-line border border-line">
-      {events.map((ev) => {
+      {events.map((ev, i) => {
         const album = albumByEvent.get(ev.id);
         const item = <EventItem event={ev} album={album} past={past} />;
+        // Events with photos deal in and lift on hover; the rest only deal in.
         return album ? (
           <FlipCard
             key={ev.id}
@@ -84,11 +85,15 @@ function EventGrid({
             color={colorFor(album.id)}
             title={ev.title}
             label={`See photos from ${ev.title}, ${photoCountLabel(album.photo_count)}`}
+            className="sbg-card"
+            style={{ "--c": colorFor(album.id), animationDelay: dealDelay(i) } as CSSProperties}
           >
             {item}
           </FlipCard>
         ) : (
-          <div key={ev.id}>{item}</div>
+          <div key={ev.id} className="sbg-deal" style={{ animationDelay: dealDelay(i) }}>
+            {item}
+          </div>
         );
       })}
     </div>
@@ -98,7 +103,7 @@ function EventGrid({
 function EventItem({ event, album, past }: { event: Event; album?: AlbumWithCount; past: boolean }) {
   const meta = [formatDate(event.date), event.time, event.location].filter(Boolean).join(" · ");
   return (
-    <div className="h-full bg-ink p-7 flex flex-col gap-3 transition-colors group-hover:bg-ink-raised">
+    <div className="h-full bg-ink p-7 flex flex-col gap-3">
       {event.tag && <EventTag tag={event.tag} />}
       <h3 className="m-0 font-mono text-[22px] font-semibold leading-tight">{event.title}</h3>
       {meta && <p className="m-0 font-mono text-[13px] text-fog">{meta}</p>}
@@ -111,14 +116,14 @@ function EventItem({ event, album, past }: { event: Event; album?: AlbumWithCoun
               href={event.rsvp_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="relative z-10 bg-brand-orange text-ink no-underline font-mono font-bold text-[15px] px-5 py-3 hover:bg-[#FFAD33]"
+              className="sbg-btn relative z-10 bg-brand-orange text-ink no-underline font-mono font-bold text-[15px] px-5 py-3"
             >
-              RSVP →
+              RSVP <span className="sbg-arrow" aria-hidden="true">→</span>
             </a>
           )}
           {album && (
             <span className="font-mono text-[15px] text-brand-sky">
-              {photoCountLabel(album.photo_count)} →
+              {photoCountLabel(album.photo_count)} <span className="sbg-arrow" aria-hidden="true">→</span>
             </span>
           )}
         </div>

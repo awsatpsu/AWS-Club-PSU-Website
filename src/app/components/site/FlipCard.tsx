@@ -1,4 +1,4 @@
-import { useState, type MouseEvent, type ReactNode } from "react";
+import { useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { motion, useReducedMotion } from "motion/react";
 
@@ -16,6 +16,7 @@ export function FlipCard({
   title,
   label,
   className = "",
+  style,
   children,
 }: {
   to: string;
@@ -23,6 +24,7 @@ export function FlipCard({
   title: string;
   label: string;
   className?: string;
+  style?: CSSProperties;
   children: ReactNode;
 }) {
   const navigate = useNavigate();
@@ -39,7 +41,7 @@ export function FlipCard({
   };
 
   return (
-    <div className={`group relative ${flipping ? "z-20" : ""} ${className}`} style={{ perspective: 1400 }}>
+    <div className={`group relative ${flipping ? "z-20" : ""} ${className}`} style={{ perspective: 1400, ...style }}>
       <motion.div
         className="relative h-full"
         style={{ transformStyle: "preserve-3d" }}

@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { AlbumWithCount } from "../../../lib/data";
 import { formatDate } from "../../../lib/date";
 import { colorFor, tagColor } from "../../site";
@@ -12,7 +13,20 @@ export function albumPath(albumId: string) {
   return `/gallery/${albumId}`;
 }
 
-export function AlbumCard({ album, compact = false }: { album: AlbumWithCount; compact?: boolean }) {
+// Cards in a grid deal in one after another; `index` sets this card's place in that stagger.
+export function dealDelay(index: number) {
+  return `${(0.35 + Math.min(index, 12) * 0.08).toFixed(2)}s`;
+}
+
+export function AlbumCard({
+  album,
+  compact = false,
+  index = 0,
+}: {
+  album: AlbumWithCount;
+  compact?: boolean;
+  index?: number;
+}) {
   const color = colorFor(album.id);
   const height = compact ? "h-[220px]" : "h-[240px] sm:h-[280px]";
   return (
@@ -21,32 +35,42 @@ export function AlbumCard({ album, compact = false }: { album: AlbumWithCount; c
       color={color}
       title={album.label}
       label={`Open the ${album.label} album, ${photoCountLabel(album.photo_count)}`}
+      className={compact ? "sbg-lift" : "sbg-card"}
+      style={{ "--c": color, animationDelay: compact ? undefined : dealDelay(index) } as CSSProperties}
     >
-      <div className="h-full flex flex-col text-white bg-ink-raised border border-line group-hover:border-fog transition-colors">
+      <div className="h-full flex flex-col text-white bg-ink-raised border border-line">
         {album.cover_image_url ? (
           <span className={`relative block overflow-hidden ${height}`}>
             <img
               src={album.cover_image_url}
               alt=""
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+              className="sbg-zoom w-full h-full object-cover"
             />
             {!compact && <CountBadge n={album.photo_count} />}
           </span>
         ) : (
-          <ColorBlock color={color} label="COVER PHOTO" notch={compact ? 0 : 48} className={height}>
+          <span className={`relative block overflow-hidden ${height}`}>
+            <ColorBlock color={color} label="COVER PHOTO" notch={compact ? 0 : 48} className="sbg-zoom h-full" />
             {!compact && <CountBadge n={album.photo_count} />}
-          </ColorBlock>
+          </span>
         )}
         <span className={`flex flex-col gap-1.5 ${compact ? "px-6 pt-5 pb-6" : "px-6 pt-[22px] pb-[26px]"}`}>
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[13px]">
             {album.event?.tag && <EventTag tag={album.event.tag} />}
             {album.date && <span className="text-fog">{formatDate(album.date)}</span>}
           </span>
-          <span className={`font-mono font-semibold ${compact ? "text-xl" : "text-[22px]"}`}>{album.label}</span>
+          <span className={`font-mono font-semibold ${compact ? "text-xl" : "text-[22px]"}`}>
+            {album.label}
+            {compact && <span className="sbg-arrow ml-2" aria-hidden="true">→</span>}
+          </span>
           {album.event && album.event.title !== album.label && (
             <span className="font-mono text-[13px] text-fog">From {album.event.title}</span>
           )}
-          {!compact && <span className="mt-2.5 font-mono text-[15px] text-brand-sky">View photos →</span>}
+          {!compact && (
+            <span className="mt-2.5 font-mono text-[15px] text-brand-sky">
+              View photos <span className="sbg-arrow" aria-hidden="true">→</span>
+            </span>
+          )}
         </span>
       </div>
     </FlipCard>

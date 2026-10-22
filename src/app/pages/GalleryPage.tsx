@@ -27,8 +27,8 @@ export default function GalleryPage() {
             <p className="m-0 font-mono text-fog">Photos coming soon — check back after our next event.</p>
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] max-sm:grid-cols-1 gap-8">
-              {albums.map((album) => (
-                <AlbumCard key={album.id} album={album} />
+              {albums.map((album, i) => (
+                <AlbumCard key={album.id} album={album} index={i} />
               ))}
             </div>
           )}

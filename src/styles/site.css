@@ -35,3 +35,131 @@
     linear-gradient(90deg, var(--color-grid) 1px, transparent 1px);
   background-size: 64px 64px;
 }
+
+/* ── Motion, from the design canvas ───────────────────────────────────────
+   Entrances (sbg-up/down/deal/pop), hover lifts, and scroll reveals.
+   Stagger with an inline animation-delay. All of it is off under reduced motion. */
+
+@keyframes sbgUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+@keyframes sbgDown { from { opacity: 0; transform: translateY(-24px); } to { opacity: 1; transform: none; } }
+@keyframes sbgDeal {
+  0% { opacity: 0; transform: translateY(40px) rotate(-3deg) scale(.94); }
+  70% { opacity: 1; transform: translateY(-6px) rotate(.6deg) scale(1.01); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes sbgPhotoPop {
+  0% { opacity: 0; transform: scale(.6); }
+  65% { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes sbgPixPop {
+  0% { transform: scale(0) rotate(-90deg); opacity: 0; }
+  60% { transform: scale(1.18) rotate(8deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes sbgWave { 0%, 14%, 100% { filter: none; } 6% { filter: brightness(1.4) saturate(1.25); } }
+@keyframes sbgGhost { 0%, 14%, 100% { background-color: #151D25; } 6% { background-color: #2E3A47; } }
+@keyframes sbgFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sbgBlink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes sbgDrift { from { background-position: 0 0, 0 0; } to { background-position: 0 64px, 64px 0; } }
+@keyframes sbgShine { from { transform: translateX(-160%) skewX(-20deg); } to { transform: translateX(360%) skewX(-20deg); } }
+@keyframes sbgRing { 0% { box-shadow: 0 0 0 0 rgba(255, 153, 0, .7); } 100% { box-shadow: 0 0 0 18px rgba(255, 153, 0, 0); } }
+@keyframes sbgSpin { from { rotate: 0deg; } to { rotate: 360deg; } }
+
+.sbg-down { animation: sbgDown .6s cubic-bezier(.2, .8, .2, 1) both; }
+.sbg-up { animation: sbgUp .7s cubic-bezier(.2, .8, .2, 1) both; }
+.sbg-deal { animation: sbgDeal .7s cubic-bezier(.2, .8, .2, 1) both; }
+.sbg-drift { animation: sbgDrift 14s linear infinite; }
+@supports (animation-timeline: view()) {
+  .sbg-reveal { animation: sbgUp linear both; animation-timeline: view(); animation-range: entry 0% entry 35%; }
+}
+
+/* Hero mosaic: tiles pop in from the center, then a brightness wave rolls through. */
+.sbg-pix {
+  animation-name: sbgPixPop, sbgWave;
+  animation-duration: .65s, 5s;
+  animation-timing-function: cubic-bezier(.34, 1.56, .64, 1), ease-in-out;
+  animation-iteration-count: 1, infinite;
+  animation-fill-mode: both, none;
+  transition: rotate .35s cubic-bezier(.34, 1.56, .64, 1), scale .35s cubic-bezier(.34, 1.56, .64, 1);
+}
+.sbg-pix:hover { rotate: 90deg; scale: 1.12; z-index: 1; }
+.sbg-ghost { animation: sbgGhost 5s ease-in-out infinite; }
+.sbg-cursor {
+  display: inline-block; width: .5em; height: .9em; margin-left: .12em; vertical-align: -.08em;
+  background: var(--color-brand-orange); animation: sbgBlink 1s steps(1) infinite;
+}
+
+/* Buttons and links */
+.sbg-btn {
+  position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 10px;
+  transition: transform .18s cubic-bezier(.2, .8, .2, 1), box-shadow .18s cubic-bezier(.2, .8, .2, 1);
+}
+.sbg-btn:hover { transform: translate(-4px, -4px); box-shadow: 5px 5px 0 #FFFFFF; }
+.sbg-btn:active { transform: translate(0, 0); box-shadow: 0 0 0 #FFFFFF; transition-duration: .06s; }
+.sbg-btn::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 35%; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .6), transparent);
+  transform: translateX(-160%) skewX(-20deg);
+}
+.sbg-btn:hover::after { animation: sbgShine .65s ease-out; }
+.sbg-ring { animation: sbgRing 1.1s ease-out 1.9s 2; }
+.sbg-arrow { display: inline-block; transition: transform .22s cubic-bezier(.34, 1.56, .64, 1); }
+.sbg-btn:hover .sbg-arrow, .sbg-ghostbtn:hover .sbg-arrow, .sbg-lift:hover .sbg-arrow,
+.sbg-card:hover .sbg-arrow, .sbg-textlink:hover .sbg-arrow { transform: translateX(6px); }
+.sbg-back:hover .sbg-arrow { transform: translateX(-6px); }
+.sbg-ghostbtn, .sbg-outline {
+  background: linear-gradient(#FFFFFF, #FFFFFF) no-repeat left center / 0% 100%;
+  transition: background-size .3s cubic-bezier(.2, .8, .2, 1), color .3s;
+}
+.sbg-ghostbtn { display: inline-flex; align-items: center; gap: 10px; }
+.sbg-ghostbtn:hover, .sbg-outline:hover { background-size: 100% 100%; color: #151D25 !important; }
+.sbg-link { position: relative; }
+.sbg-link::after {
+  content: ""; position: absolute; left: 14px; right: 14px; bottom: 4px; height: 2px;
+  background: var(--color-brand-orange); transform: scaleX(0); transform-origin: left;
+  transition: transform .25s cubic-bezier(.2, .8, .2, 1);
+}
+.sbg-link:hover::after { transform: scaleX(1); }
+.sbg-chip { transition: box-shadow .2s, background-color .2s; }
+.sbg-chip:hover { box-shadow: inset 0 -4px 0 var(--color-brand-pink); }
+.sbg-chip:active { box-shadow: inset 0 -8px 0 var(--color-brand-pink); }
+
+/* Cards: sbg-card deals in and lifts with a colored shadow (--c); sbg-lift only lifts. */
+.sbg-card { animation: sbgDeal .7s cubic-bezier(.2, .8, .2, 1) both; }
+.sbg-card, .sbg-lift { transition: translate .22s cubic-bezier(.2, .8, .2, 1), box-shadow .22s cubic-bezier(.2, .8, .2, 1); }
+.sbg-card:hover, .sbg-lift:hover { translate: -6px -6px; box-shadow: 6px 6px 0 var(--c, #FF9900); }
+.sbg-card:active, .sbg-lift:active { translate: 0 0; box-shadow: 0 0 0 var(--c, #FF9900); }
+.sbg-zoom { transition: scale .5s cubic-bezier(.2, .8, .2, 1); }
+.sbg-card:hover .sbg-zoom, .sbg-lift:hover .sbg-zoom { scale: 1.05; }
+.sbg-flipicon { display: inline-block; }
+.sbg-card:hover .sbg-flipicon { animation: sbgSpin .6s cubic-bezier(.34, 1.56, .64, 1); }
+.sbg-cell { transition: background-color .25s; }
+.sbg-cell:hover { background-color: var(--color-ink-raised) !important; }
+.sbg-num { transition: rotate .4s cubic-bezier(.34, 1.56, .64, 1), scale .4s cubic-bezier(.34, 1.56, .64, 1); }
+.sbg-cell:hover .sbg-num, a:hover > .sbg-num { rotate: 90deg; scale: 1.1; }
+.sbg-wcell { transition: background-color .25s; }
+.sbg-wcell:hover { background-color: #F1F4F7 !important; }
+.sbg-bar {
+  display: block; height: 3px; width: 32px; background: var(--color-brand-orange);
+  transition: width .3s cubic-bezier(.2, .8, .2, 1);
+}
+.sbg-wcell:hover .sbg-bar { width: 100%; }
+.sbg-check { animation: sbgPixPop .6s cubic-bezier(.34, 1.56, .64, 1) both; }
+
+/* Album photos and the lightbox */
+.sbg-photo {
+  animation: sbgPhotoPop .55s cubic-bezier(.34, 1.56, .64, 1) both;
+  transition: scale .25s cubic-bezier(.2, .8, .2, 1), filter .25s, box-shadow .25s;
+}
+.sbg-photo:hover { scale: 1.03; filter: brightness(1.12); box-shadow: 0 0 0 3px #FFFFFF; z-index: 1; }
+.sbg-lightbox { animation: sbgFade .25s ease-out both; }
+.sbg-lbimg { animation: sbgPhotoPop .4s cubic-bezier(.34, 1.56, .64, 1) both; }
+
+.site .sbg-btn:focus-visible, .site .sbg-card:focus-visible, .site .sbg-photo:focus-visible,
+.site .sbg-outline:focus-visible, .site .sbg-ghostbtn:focus-visible, .site .sbg-chip:focus-visible,
+.site .sbg-link:focus-visible { outline: 3px solid var(--color-brand-sky); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .site *, .site *::before, .site *::after { animation: none !important; transition: none !important; }
+}
