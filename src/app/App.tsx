@@ -4,6 +4,7 @@ import { SiteHeader, SiteFooter } from "./components/site/Chrome";
 import HomePage from "./pages/HomePage";
 import MembersPage from "./pages/MembersPage";
 import EventsPage from "./pages/EventsPage";
+import GalleryPage from "./pages/GalleryPage";
 import AlbumPage from "./pages/AlbumPage";
 
 // Route changes start at the top, unless the link targets an anchor on the page.
@@ -29,6 +30,9 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="members" element={<MembersPage />} />
           <Route path="events" element={<EventsPage />} />
+          <Route path="gallery" element={<GalleryPage />} />
+          <Route path="gallery/:albumId" element={<AlbumPage />} />
+          {/* Album links from before the gallery got its own tab. */}
           <Route path="events/:albumId" element={<AlbumPage />} />
           <Route path="*" element={<HomePage />} />
         </Routes>

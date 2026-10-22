@@ -131,8 +131,8 @@ export default function HomePage() {
           <div className={`${container} py-20 sm:py-28 flex flex-col gap-12`}>
             <div className="flex flex-wrap justify-between items-end gap-6">
               <h2 className={h2}>Recent events</h2>
-              <Link to="/events" className="font-mono text-base py-3 text-brand-sky hover:text-[#8FD0FF]">
-                All events and photos →
+              <Link to="/gallery" className="font-mono text-base py-3 text-brand-sky hover:text-[#8FD0FF]">
+                All photos →
               </Link>
             </div>
             <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-6">

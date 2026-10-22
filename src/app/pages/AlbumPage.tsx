@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useLocation, useParams } from "react-router";
+import { motion } from "motion/react";
 import { fetchAlbum, fetchPhotos, type AlbumWithCount } from "../../lib/data";
 import type { GalleryPhoto } from "../../lib/types";
-import { photoCountLabel } from "../components/site/AlbumCard";
+import { EventTag, photoCountLabel } from "../components/site/AlbumCard";
+import type { FlipState } from "../components/site/FlipCard";
 import { formatDate } from "../../lib/date";
 import { colorFor, pad } from "../site";
 
 export default function AlbumPage() {
   const { albumId = "" } = useParams();
+  const { state } = useLocation() as { state: FlipState | null };
+  const fromEvents = state?.from === "/events";
   const [album, setAlbum] = useState<AlbumWithCount | null | undefined>(undefined);
   const [photos, setPhotos] = useState<GalleryPhoto[] | null>(null);
   const [open, setOpen] = useState<number | null>(null);
@@ -25,67 +29,81 @@ export default function AlbumPage() {
 
   return (
     <>
-      <section className="border-b border-line">
-        <div className="max-w-[1320px] mx-auto px-4 sm:px-10 pt-10 pb-14 flex flex-col gap-7">
-          <Link
-            to="/events"
-            className="self-start border border-line bg-ink text-white no-underline font-mono text-[15px] px-[18px] py-3 hover:border-fog"
-          >
-            ← All events
-          </Link>
-          {album === null ? (
-            <h1 className="m-0 font-mono font-semibold text-[40px] leading-[1.1]">Album not found.</h1>
-          ) : (
-            <div className="flex flex-wrap items-end justify-between gap-6">
-              <div className="flex-[1_1_520px] min-w-0 flex flex-col gap-3.5">
-                <div className="flex items-center gap-3">
-                  <span className="w-4 h-4" style={{ background: color }} />
-                  {album?.date && <span className="font-mono text-sm text-fog">{formatDate(album.date)}</span>}
+      {/* Arriving from a flipped card, the page turns the rest of the way in. */}
+      <div style={{ perspective: 2000 }}>
+        <motion.div
+          initial={state?.flipped ? { rotateY: -90, opacity: 0 } : false}
+          animate={{ rotateY: 0, opacity: 1 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          style={{ transformOrigin: "center top" }}
+        >
+          <section className="border-b border-line">
+            <div className="max-w-[1320px] mx-auto px-4 sm:px-10 pt-10 pb-14 flex flex-col gap-7">
+              <Link
+                to={fromEvents ? "/events" : "/gallery"}
+                className="self-start border border-line bg-ink text-white no-underline font-mono text-[15px] px-[18px] py-3 hover:border-fog"
+              >
+                {fromEvents ? "← All events" : "← Gallery"}
+              </Link>
+              {album === null ? (
+                <h1 className="m-0 font-mono font-semibold text-[40px] leading-[1.1]">Album not found.</h1>
+              ) : (
+                <div className="flex flex-wrap items-end justify-between gap-6">
+                  <div className="flex-[1_1_520px] min-w-0 flex flex-col gap-3.5">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="w-4 h-4" style={{ background: color }} />
+                      {album?.event?.tag && <EventTag tag={album.event.tag} />}
+                      {album?.date && <span className="font-mono text-sm text-fog">{formatDate(album.date)}</span>}
+                    </div>
+                    <h1 className="m-0 font-mono font-semibold text-[36px] sm:text-[52px] leading-[1.1] tracking-[-0.02em]">
+                      {album?.label ?? " "}
+                    </h1>
+                    {album?.event && album.event.title !== album.label && (
+                      <p className="m-0 font-mono text-[15px] text-fog">From {album.event.title}</p>
+                    )}
+                  </div>
+                  {album && (
+                    <span className="font-mono text-[15px] border border-line px-3.5 py-2.5">{photoCountLabel(count)}</span>
+                  )}
                 </div>
-                <h1 className="m-0 font-mono font-semibold text-[36px] sm:text-[52px] leading-[1.1] tracking-[-0.02em]">
-                  {album?.label ?? " "}
-                </h1>
-              </div>
-              {album && (
-                <span className="font-mono text-[15px] border border-line px-3.5 py-2.5">{photoCountLabel(count)}</span>
               )}
             </div>
-          )}
-        </div>
-      </section>
+          </section>
 
-      {album !== null && (
-        <section>
-          <div className="max-w-[1320px] mx-auto px-4 sm:px-10 pt-12 pb-28">
-            {photos === null ? (
-              <p className="m-0 font-mono text-fog">Loading…</p>
-            ) : photos.length === 0 ? (
-              <p className="m-0 font-mono text-fog">No photos yet for this event.</p>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(240px,1fr))] auto-rows-[160px] sm:auto-rows-[220px] grid-flow-dense gap-3">
-                {photos.map((photo, i) => (
-                  <button
-                    key={photo.id}
-                    type="button"
-                    onClick={() => setOpen(i)}
-                    aria-label={`View photo ${i + 1} of ${photos.length}`}
-                    className={`group relative overflow-hidden border-0 p-0 bg-ink-raised cursor-zoom-in ${
-                      i % 7 === 0 ? "col-span-2 row-span-2" : ""
-                    }`}
-                  >
-                    <img
-                      src={photo.image_url}
-                      alt={photo.caption || ""}
-                      loading="lazy"
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                    />
-                  </button>
-                ))}
+          {album !== null && (
+            <section>
+              <div className="max-w-[1320px] mx-auto px-4 sm:px-10 pt-12 pb-28">
+                {photos === null ? (
+                  <p className="m-0 font-mono text-fog">Loading…</p>
+                ) : photos.length === 0 ? (
+                  <p className="m-0 font-mono text-fog">No photos yet for this event.</p>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(240px,1fr))] auto-rows-[160px] sm:auto-rows-[220px] grid-flow-dense gap-3">
+                    {photos.map((photo, i) => (
+                      <button
+                        key={photo.id}
+                        type="button"
+                        onClick={() => setOpen(i)}
+                        aria-label={`View photo ${i + 1} of ${photos.length}`}
+                        className={`group relative overflow-hidden border-0 p-0 bg-ink-raised cursor-zoom-in ${
+                          i % 7 === 0 ? "col-span-2 row-span-2" : ""
+                        }`}
+                      >
+                        <img
+                          src={photo.image_url}
+                          alt={photo.caption || ""}
+                          loading="lazy"
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </section>
-      )}
+            </section>
+          )}
+        </motion.div>
+      </div>
 
       {open !== null && photos && photos[open] && (
         <Lightbox

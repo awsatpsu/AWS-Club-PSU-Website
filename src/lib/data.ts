@@ -2,21 +2,28 @@ import { supabase } from './supabase';
 import type { Event, TeamMember, GalleryAlbum, GalleryPhoto } from './types';
 import { todayISO } from './date';
 
+export type AlbumEvent = Pick<Event, 'id' | 'title' | 'tag' | 'date'>;
+
 export interface AlbumWithCount extends GalleryAlbum {
   photo_count: number;
+  event: AlbumEvent | null;
 }
 
-type AlbumRow = GalleryAlbum & { gallery_photos?: { count: number }[] };
+type AlbumRow = GalleryAlbum & { gallery_photos?: { count: number }[]; events?: AlbumEvent | null };
 
-const toAlbum = ({ gallery_photos, ...album }: AlbumRow): AlbumWithCount => ({
+// Each album carries its photo count and the event it belongs to.
+const ALBUM_SELECT = '*, gallery_photos(count), events(id, title, tag, date)';
+
+const toAlbum = ({ gallery_photos, events, ...album }: AlbumRow): AlbumWithCount => ({
   ...album,
   photo_count: gallery_photos?.[0]?.count ?? 0,
+  event: events ?? null,
 });
 
 export async function fetchAlbums(limit?: number): Promise<AlbumWithCount[]> {
   let query = supabase
     .from('gallery_albums')
-    .select('*, gallery_photos(count)')
+    .select(ALBUM_SELECT)
     .order('date', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false });
   if (limit) query = query.limit(limit);
@@ -27,7 +34,7 @@ export async function fetchAlbums(limit?: number): Promise<AlbumWithCount[]> {
 export async function fetchAlbum(id: string): Promise<AlbumWithCount | null> {
   const { data } = await supabase
     .from('gallery_albums')
-    .select('*, gallery_photos(count)')
+    .select(ALBUM_SELECT)
     .eq('id', id)
     .maybeSingle();
   return data ? toAlbum(data as AlbumRow) : null;

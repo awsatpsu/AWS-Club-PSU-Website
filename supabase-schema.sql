@@ -27,6 +27,7 @@ create table if not exists team_members (
 
 create table if not exists gallery_albums (
   id uuid default gen_random_uuid() primary key,
+  event_id uuid unique references events(id) on delete set null,
   label text not null,
   date date,
   cover_image_url text,

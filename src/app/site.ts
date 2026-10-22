@@ -10,6 +10,18 @@ export function colorFor(id: string) {
   return PALETTE[Math.abs(hash) % PALETTE.length];
 }
 
+const EVENT_TAG_COLORS: Record<string, string> = {
+  Workshop: "#41B3FF",
+  "Study Group": "#00E582",
+  Speaker: "#AC5BFF",
+  Hackathon: "#FF9900",
+  Career: "#FF57E9",
+};
+
+export function tagColor(tag: string) {
+  return EVENT_TAG_COLORS[tag] ?? "#A9B4C0";
+}
+
 export function pad(n: number) {
   return n < 10 ? `0${n}` : `${n}`;
 }

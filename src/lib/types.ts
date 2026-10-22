@@ -23,6 +23,7 @@ export interface TeamMember {
 
 export interface GalleryAlbum {
   id: string;
+  event_id: string | null;
   label: string;
   date: string | null; // YYYY-MM-DD
   cover_image_url: string | null;

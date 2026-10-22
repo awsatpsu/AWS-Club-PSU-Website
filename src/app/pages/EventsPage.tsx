@@ -2,63 +2,42 @@ import { useEffect, useState } from "react";
 import { fetchAlbums, fetchPastEvents, fetchUpcomingEvents, type AlbumWithCount } from "../../lib/data";
 import type { Event } from "../../lib/types";
 import { formatDate } from "../../lib/date";
-import { AlbumCard } from "../components/site/AlbumCard";
+import { albumPath, EventTag, photoCountLabel } from "../components/site/AlbumCard";
 import { PageHero } from "../components/site/Chrome";
-
-const TAG_COLORS: Record<string, string> = {
-  Workshop: "#41B3FF",
-  "Study Group": "#00E582",
-  Speaker: "#AC5BFF",
-  Hackathon: "#FF9900",
-  Career: "#FF57E9",
-};
+import { FlipCard } from "../components/site/FlipCard";
+import { colorFor } from "../site";
 
 export default function EventsPage() {
-  const [albums, setAlbums] = useState<AlbumWithCount[] | null>(null);
-  const [upcoming, setUpcoming] = useState<Event[]>([]);
+  const [upcoming, setUpcoming] = useState<Event[] | null>(null);
   const [past, setPast] = useState<Event[]>([]);
+  const [albumByEvent, setAlbumByEvent] = useState<Map<string, AlbumWithCount>>(new Map());
 
   useEffect(() => {
-    fetchAlbums().then(setAlbums);
     fetchUpcomingEvents().then(setUpcoming);
     fetchPastEvents().then(setPast);
+    fetchAlbums().then((albums) =>
+      setAlbumByEvent(new Map(albums.filter((a) => a.event_id).map((a) => [a.event_id!, a]))),
+    );
   }, []);
 
   return (
     <>
       <PageHero
-        eyebrow="EVENTS & PHOTOS"
+        eyebrow="EVENTS"
         eyebrowClass="text-brand-sky"
         title="What we've been building."
-        lede="One photo for every event. Click a cover to open the full album."
+        lede="Workshops, build nights and talks. Click an event with photos to flip it open."
       />
-
-      {upcoming.length > 0 && (
-        <section className="border-b border-line">
-          <div className="max-w-[1320px] mx-auto px-4 sm:px-10 pt-[72px] pb-[72px] flex flex-col gap-8">
-            <SectionTitle color="#FF9900" title="Coming up" />
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] max-sm:grid-cols-1 gap-px bg-line border border-line">
-              {upcoming.map((ev) => (
-                <EventItem key={ev.id} event={ev} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       <section className={past.length > 0 ? "border-b border-line" : ""}>
         <div className={`max-w-[1320px] mx-auto px-4 sm:px-10 pt-[72px] flex flex-col gap-8 ${past.length > 0 ? "pb-[72px]" : "pb-28"}`}>
-          <SectionTitle color="#41B3FF" title="Photo albums" />
-          {albums === null ? (
+          <SectionTitle color="#FF9900" title="Coming up" />
+          {upcoming === null ? (
             <p className="m-0 font-mono text-fog">Loading…</p>
-          ) : albums.length === 0 ? (
-            <p className="m-0 font-mono text-fog">Photos coming soon — check back after our next event.</p>
+          ) : upcoming.length === 0 ? (
+            <p className="m-0 font-mono text-fog">Nothing scheduled yet — check back soon.</p>
           ) : (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] max-sm:grid-cols-1 gap-8">
-              {albums.map((album) => (
-                <AlbumCard key={album.id} album={album} />
-              ))}
-            </div>
+            <EventGrid events={upcoming} albumByEvent={albumByEvent} />
           )}
         </div>
       </section>
@@ -67,11 +46,7 @@ export default function EventsPage() {
         <section>
           <div className="max-w-[1320px] mx-auto px-4 sm:px-10 pt-[72px] pb-28 flex flex-col gap-8">
             <SectionTitle color="#A9B4C0" title="Past events" />
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] max-sm:grid-cols-1 gap-px bg-line border border-line">
-              {past.map((ev) => (
-                <EventItem key={ev.id} event={ev} past />
-              ))}
-            </div>
+            <EventGrid events={past} albumByEvent={albumByEvent} past />
           </div>
         </section>
       )}
@@ -88,29 +63,65 @@ function SectionTitle({ color, title }: { color: string; title: string }) {
   );
 }
 
-function EventItem({ event, past = false }: { event: Event; past?: boolean }) {
+function EventGrid({
+  events,
+  albumByEvent,
+  past = false,
+}: {
+  events: Event[];
+  albumByEvent: Map<string, AlbumWithCount>;
+  past?: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] max-sm:grid-cols-1 gap-px bg-line border border-line">
+      {events.map((ev) => {
+        const album = albumByEvent.get(ev.id);
+        const item = <EventItem event={ev} album={album} past={past} />;
+        return album ? (
+          <FlipCard
+            key={ev.id}
+            to={albumPath(album.id)}
+            color={colorFor(album.id)}
+            title={ev.title}
+            label={`See photos from ${ev.title}, ${photoCountLabel(album.photo_count)}`}
+          >
+            {item}
+          </FlipCard>
+        ) : (
+          <div key={ev.id}>{item}</div>
+        );
+      })}
+    </div>
+  );
+}
+
+function EventItem({ event, album, past }: { event: Event; album?: AlbumWithCount; past: boolean }) {
   const meta = [formatDate(event.date), event.time, event.location].filter(Boolean).join(" · ");
   return (
-    <div className="bg-ink p-7 flex flex-col gap-3">
-      {event.tag && (
-        <span className="flex items-center gap-2.5 font-mono text-[13px] font-semibold">
-          <span className="w-2.5 h-2.5" style={{ background: TAG_COLORS[event.tag] ?? "#A9B4C0" }} />
-          {event.tag.toUpperCase()}
-        </span>
-      )}
+    <div className="h-full bg-ink p-7 flex flex-col gap-3 transition-colors group-hover:bg-ink-raised">
+      {event.tag && <EventTag tag={event.tag} />}
       <h3 className="m-0 font-mono text-[22px] font-semibold leading-tight">{event.title}</h3>
       {meta && <p className="m-0 font-mono text-[13px] text-fog">{meta}</p>}
       {event.description && <p className="m-0 text-mist">{event.description}</p>}
       {!past && event.capacity && <p className="m-0 font-mono text-[13px] text-fog">{event.capacity}</p>}
-      {!past && event.rsvp_url && (
-        <a
-          href={event.rsvp_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-2 self-start bg-brand-orange text-ink no-underline font-mono font-bold text-[15px] px-5 py-3 hover:bg-[#FFAD33]"
-        >
-          RSVP →
-        </a>
+      {(album || (!past && event.rsvp_url)) && (
+        <div className="mt-auto pt-2 flex flex-wrap items-center gap-x-6 gap-y-3">
+          {!past && event.rsvp_url && (
+            <a
+              href={event.rsvp_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="relative z-10 bg-brand-orange text-ink no-underline font-mono font-bold text-[15px] px-5 py-3 hover:bg-[#FFAD33]"
+            >
+              RSVP →
+            </a>
+          )}
+          {album && (
+            <span className="font-mono text-[15px] text-brand-sky">
+              {photoCountLabel(album.photo_count)} →
+            </span>
+          )}
+        </div>
       )}
     </div>
   );

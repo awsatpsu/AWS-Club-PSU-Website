@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Trash2, ArrowLeft, Upload, Pencil, Camera } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import type { GalleryAlbum, GalleryPhoto } from '../../lib/types';
+import type { Event, GalleryAlbum, GalleryPhoto } from '../../lib/types';
 import { formatDate } from '../../lib/date';
 
 const UPLOAD_CONCURRENCY = 4;
@@ -55,7 +55,9 @@ type View = 'albums' | 'photos' | 'album-form';
 
 type AlbumDraft = Omit<GalleryAlbum, 'id'>;
 
-const BLANK_ALBUM: AlbumDraft = { label: '', date: null, cover_image_url: null, sort_order: 0 };
+const BLANK_ALBUM: AlbumDraft = { event_id: null, label: '', date: null, cover_image_url: null, sort_order: 0 };
+
+type EventOption = Pick<Event, 'id' | 'title' | 'date'>;
 
 const inputCls =
   'w-full bg-[#111] border border-[#2a2a2a] rounded px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#555] placeholder:text-[#3a3a3a]';
@@ -72,6 +74,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 export default function GalleryAdmin() {
   const [view, setView] = useState<View>('albums');
   const [albums, setAlbums] = useState<GalleryAlbum[]>([]);
+  const [events, setEvents] = useState<EventOption[]>([]);
   const [selectedAlbum, setSelectedAlbum] = useState<GalleryAlbum | null>(null);
   const [editingAlbum, setEditingAlbum] = useState<GalleryAlbum | null>(null);
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
@@ -107,7 +110,31 @@ export default function GalleryAdmin() {
     setPhotos(data ?? []);
   }, []);
 
-  useEffect(() => { loadAlbums(); }, [loadAlbums]);
+  const loadEvents = useCallback(async () => {
+    const { data } = await supabase
+      .from('events')
+      .select('id, title, date')
+      .order('date', { ascending: false, nullsFirst: false });
+    setEvents(data ?? []);
+  }, []);
+
+  useEffect(() => { loadAlbums(); loadEvents(); }, [loadAlbums, loadEvents]);
+
+  const eventTitle = (id: string | null) => events.find(ev => ev.id === id)?.title;
+
+  // Picking an event fills in the album name and date, unless they were already changed by hand.
+  const pickEvent = (id: string) => {
+    const ev = events.find(e => e.id === id);
+    setAlbumForm(p => {
+      const prev = events.find(e => e.id === p.event_id);
+      return {
+        ...p,
+        event_id: id || null,
+        label: !p.label || p.label === prev?.title ? ev?.title ?? '' : p.label,
+        date: !p.date || p.date === prev?.date ? ev?.date ?? null : p.date,
+      };
+    });
+  };
 
   // A file dropped outside the drop zone would make the browser open it and leave the page.
   useEffect(() => {
@@ -246,6 +273,26 @@ export default function GalleryAdmin() {
           {editingAlbum ? 'Edit Album' : 'New Album'}
         </h2>
         <div className="space-y-4">
+          <Field label="Event">
+            <select
+              className={`${inputCls} [color-scheme:dark]`}
+              value={albumForm.event_id ?? ''}
+              onChange={e => pickEvent(e.target.value)}
+            >
+              <option value="">Choose the event these photos are from…</option>
+              {events.map(ev => {
+                const taken = albums.some(a => a.event_id === ev.id && a.id !== editingAlbum?.id);
+                return (
+                  <option key={ev.id} value={ev.id} disabled={taken}>
+                    {ev.title}{ev.date ? ` — ${formatDate(ev.date)}` : ''}{taken ? ' (has an album)' : ''}
+                  </option>
+                );
+              })}
+            </select>
+            {events.length === 0 && (
+              <p className="mt-1.5 text-xs text-[#555]">No events yet — add the event in the Events tab first.</p>
+            )}
+          </Field>
           <Field label="Album name">
             <input
               className={inputCls}
@@ -280,11 +327,11 @@ export default function GalleryAdmin() {
             </button>
           </Field>
         </div>
-        <p className="mt-3 text-xs text-[#555]">Albums are listed newest date first.</p>
+        <p className="mt-3 text-xs text-[#555]">Each album belongs to one event. Albums are listed newest date first.</p>
         <div className="mt-8 flex gap-3">
           <button
             onClick={saveAlbum}
-            disabled={saving || !albumForm.label || !albumForm.date}
+            disabled={saving || !albumForm.event_id || !albumForm.label || !albumForm.date}
             className="px-5 py-2 bg-[#FF9900] text-black font-bold text-sm rounded hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             {saving ? 'Saving…' : 'Save'}
@@ -313,7 +360,9 @@ export default function GalleryAdmin() {
         <div className="flex items-start justify-between mb-8">
           <div>
             <h1 className="text-xl font-bold text-white">{selectedAlbum.label}</h1>
-            <p className="text-xs text-[#555] mt-1">{photos.length} photos · {formatDate(selectedAlbum.date)}</p>
+            <p className="text-xs text-[#555] mt-1">
+              {eventTitle(selectedAlbum.event_id) ?? 'No event'} · {photos.length} photos · {formatDate(selectedAlbum.date)}
+            </p>
           </div>
         </div>
 
@@ -450,6 +499,11 @@ export default function GalleryAdmin() {
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-white truncate">{album.label}</p>
                     <p className="text-xs text-[#555] mt-0.5">{formatDate(album.date)}</p>
+                    {album.event_id ? (
+                      <p className="text-xs text-[#777] mt-0.5 truncate">{eventTitle(album.event_id)}</p>
+                    ) : (
+                      <p className="text-xs text-amber-400 mt-0.5">No event — edit to assign</p>
+                    )}
                   </div>
                   <div className="flex gap-1 shrink-0">
                     <button

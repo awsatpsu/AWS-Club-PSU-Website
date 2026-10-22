@@ -25,6 +25,7 @@ const NAV = [
   { to: "/", label: "Home", end: true },
   { to: "/members", label: "Members", end: false },
   { to: "/events", label: "Events", end: false },
+  { to: "/gallery", label: "Gallery", end: false },
 ];
 
 export const JOIN_LINK = { pathname: "/", hash: "#join" };
