@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Trash2, ArrowLeft, Upload, Pencil, Camera } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Upload, Pencil, Camera, Images, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { Event, GalleryAlbum, GalleryPhoto } from '../../lib/types';
 import { formatDate } from '../../lib/date';
@@ -51,7 +51,9 @@ async function filesFromDrop(dt: DataTransfer): Promise<File[]> {
   return out.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 }
 
-type View = 'albums' | 'photos' | 'album-form';
+type View = 'albums' | 'photos' | 'album-form' | 'batch';
+
+type BatchItem = { file: File; preview: string };
 
 type AlbumDraft = Omit<GalleryAlbum, 'id'>;
 
@@ -85,9 +87,12 @@ export default function GalleryAdmin() {
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [dragging, setDragging] = useState(false);
   const [albumForm, setAlbumForm] = useState<AlbumDraft>(BLANK_ALBUM);
+  const [batch, setBatch] = useState<BatchItem[]>([]);
+  const [batchEventId, setBatchEventId] = useState('');
 
   const coverFileRef = useRef<HTMLInputElement>(null);
   const photosFileRef = useRef<HTMLInputElement>(null);
+  const batchFileRef = useRef<HTMLInputElement>(null);
 
   const loadAlbums = useCallback(async () => {
     setLoading(true);
@@ -138,7 +143,7 @@ export default function GalleryAdmin() {
 
   // A file dropped outside the drop zone would make the browser open it and leave the page.
   useEffect(() => {
-    if (view !== 'photos') return;
+    if (view !== 'photos' && view !== 'batch') return;
     const block = (e: DragEvent) => e.preventDefault();
     window.addEventListener('dragover', block);
     window.addEventListener('drop', block);
@@ -197,12 +202,9 @@ export default function GalleryAdmin() {
   };
 
   // Uploads a few at a time so large batches (e.g. a whole folder) don't time out.
-  const uploadPhotos = async (picked: File[]) => {
-    const { images: sources, notes } = filterImages(picked);
-    if (!selectedAlbum || sources.length === 0) {
-      setUploadError(notes.join(' '));
-      return;
-    }
+  // New photos go after the album's existing ones; the first becomes the cover if it has none.
+  // Returns notes about anything that failed.
+  const uploadToAlbum = async (album: GalleryAlbum, sources: File[], existingCount: number): Promise<string[]> => {
     setUploading(true);
     setUploadError('');
     setProgress({ done: 0, total: sources.length });
@@ -215,15 +217,15 @@ export default function GalleryAdmin() {
         const i = next++;
         try {
           const file = sources[i];
-          const path = `albums/${selectedAlbum.id}/${Date.now()}-${i}.${file.name.split('.').pop()}`;
+          const path = `albums/${album.id}/${Date.now()}-${i}.${file.name.split('.').pop()}`;
           const { error } = await supabase.storage.from('gallery').upload(path, file, { contentType: file.type });
           if (error) throw new Error(`${file.name}: ${error.message}`);
           const { data: { publicUrl } } = supabase.storage.from('gallery').getPublicUrl(path);
           await supabase.from('gallery_photos').insert({
-            album_id: selectedAlbum.id,
+            album_id: album.id,
             image_url: publicUrl,
             caption: '',
-            sort_order: i,
+            sort_order: existingCount + i,
           });
           if (i === 0 || !firstUrl) firstUrl = publicUrl;
         } catch (e) {
@@ -234,15 +236,90 @@ export default function GalleryAdmin() {
     };
     await Promise.all(Array.from({ length: UPLOAD_CONCURRENCY }, worker));
 
-    if (firstUrl && photos.length === 0 && !selectedAlbum.cover_image_url) {
-      await supabase.from('gallery_albums').update({ cover_image_url: firstUrl }).eq('id', selectedAlbum.id);
+    if (firstUrl && !album.cover_image_url) {
+      await supabase.from('gallery_albums').update({ cover_image_url: firstUrl }).eq('id', album.id);
     }
-    if (errors.length) notes.unshift(`${errors.length} failed — ${errors.slice(0, 3).join('; ')}${errors.length > 3 ? '…' : ''}`);
-    if (notes.length) setUploadError(notes.join(' '));
     setUploading(false);
     setProgress(null);
+    return errors.length
+      ? [`${errors.length} failed — ${errors.slice(0, 3).join('; ')}${errors.length > 3 ? '…' : ''}`]
+      : [];
+  };
+
+  const uploadPhotos = async (picked: File[]) => {
+    const { images: sources, notes } = filterImages(picked);
+    if (!selectedAlbum || sources.length === 0) {
+      setUploadError(notes.join(' '));
+      return;
+    }
+    notes.unshift(...await uploadToAlbum(selectedAlbum, sources, photos.length));
+    if (notes.length) setUploadError(notes.join(' '));
     loadPhotos(selectedAlbum.id);
     loadAlbums();
+  };
+
+  // ── Batch upload: pick many photos, choose their event, upload together ──
+  const addToBatch = (picked: File[]) => {
+    const { images, notes } = filterImages(picked);
+    setUploadError(notes.join(' '));
+    setBatch(prev => {
+      // Picking the same file twice shouldn't add it twice.
+      const seen = new Set(prev.map(b => `${b.file.name}:${b.file.size}`));
+      const added = images
+        .filter(f => !seen.has(`${f.name}:${f.size}`))
+        .map(file => ({ file, preview: URL.createObjectURL(file) }));
+      return [...prev, ...added];
+    });
+  };
+
+  const removeFromBatch = (preview: string) => {
+    URL.revokeObjectURL(preview);
+    setBatch(prev => prev.filter(b => b.preview !== preview));
+  };
+
+  const clearBatch = () => {
+    batch.forEach(b => URL.revokeObjectURL(b.preview));
+    setBatch([]);
+  };
+
+  const openBatch = () => {
+    clearBatch();
+    setBatchEventId('');
+    setUploadError('');
+    setView('batch');
+  };
+
+  const uploadBatch = async () => {
+    const ev = events.find(e => e.id === batchEventId);
+    if (!ev || batch.length === 0) return;
+    setUploadError('');
+
+    // Add to the event's album, creating it the first time.
+    let album = albums.find(a => a.event_id === ev.id) ?? null;
+    if (!album) {
+      const { data, error } = await supabase
+        .from('gallery_albums')
+        .insert({ event_id: ev.id, label: ev.title, date: ev.date, cover_image_url: null, sort_order: 0 })
+        .select()
+        .single();
+      if (error || !data) {
+        setUploadError(`Couldn't create the album: ${error?.message ?? 'unknown error'}`);
+        return;
+      }
+      album = data as GalleryAlbum;
+    }
+    const { count } = await supabase
+      .from('gallery_photos')
+      .select('id', { count: 'exact', head: true })
+      .eq('album_id', album.id);
+
+    const notes = await uploadToAlbum(album, batch.map(b => b.file), count ?? 0);
+    clearBatch();
+    loadAlbums();
+    setSelectedAlbum(album);
+    loadPhotos(album.id);
+    setView('photos');
+    if (notes.length) setUploadError(notes.join(' '));
   };
 
   const deletePhoto = async (photo: GalleryPhoto) => {
@@ -343,6 +420,153 @@ export default function GalleryAdmin() {
             Cancel
           </button>
         </div>
+      </div>
+    );
+  }
+
+  // ── Batch upload ────────────────────────────────────────
+  if (view === 'batch') {
+    const target = albums.find(a => a.event_id === batchEventId);
+    return (
+      <div className="p-8">
+        <button
+          onClick={() => { clearBatch(); setUploadError(''); setView('albums'); }}
+          disabled={uploading}
+          className="flex items-center gap-1.5 text-sm text-[#666] hover:text-white mb-6 transition-colors disabled:opacity-50"
+        >
+          <ArrowLeft className="w-4 h-4" /> All albums
+        </button>
+        <div className="mb-8">
+          <h1 className="text-xl font-bold text-white">Upload photos</h1>
+          <p className="text-xs text-[#555] mt-1">Select as many photos as you like, choose their event, and upload them together.</p>
+        </div>
+
+        <div className="max-w-xl mb-6">
+          <Field label="Event">
+            <select
+              className={`${inputCls} [color-scheme:dark]`}
+              value={batchEventId}
+              disabled={uploading}
+              onChange={e => setBatchEventId(e.target.value)}
+            >
+              <option value="">Choose the event these photos are from…</option>
+              {events.map(ev => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.title}{ev.date ? ` — ${formatDate(ev.date)}` : ''}
+                </option>
+              ))}
+            </select>
+          </Field>
+          {batchEventId && (
+            <p className="mt-1.5 text-xs text-[#555]">
+              {target ? `Adds to the existing "${target.label}" album.` : 'Creates a new album for this event.'}
+            </p>
+          )}
+          {events.length === 0 && (
+            <p className="mt-1.5 text-xs text-[#555]">No events yet — add the event in the Events tab first.</p>
+          )}
+        </div>
+
+        <input
+          ref={batchFileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={e => {
+            const files = Array.from(e.target.files ?? []);
+            e.target.value = '';
+            addToBatch(files);
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => { if (!uploading) batchFileRef.current?.click(); }}
+          onDragEnter={e => { e.preventDefault(); if (!uploading) setDragging(true); }}
+          onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = uploading ? 'none' : 'copy'; }}
+          onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false); }}
+          onDrop={async e => {
+            e.preventDefault();
+            setDragging(false);
+            if (uploading) return;
+            addToBatch(await filesFromDrop(e.dataTransfer));
+          }}
+          aria-disabled={uploading}
+          className={`w-full mb-6 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 text-center transition-colors ${
+            batch.length === 0 ? 'py-20' : 'py-8'
+          } ${
+            dragging
+              ? 'border-[#FF9900] bg-[#FF9900]/10'
+              : 'border-[#2a2a2a] hover:border-[#444] hover:bg-[#0e0e0e]'
+          } ${uploading ? 'cursor-progress' : 'cursor-pointer'}`}
+        >
+          {progress ? (
+            <>
+              <p className="text-white text-sm font-medium">Uploading {progress.done} / {progress.total}…</p>
+              <div className="w-64 h-1.5 bg-[#1e1e1e] rounded overflow-hidden">
+                <div
+                  className="h-full bg-[#FF9900] transition-[width]"
+                  style={{ width: `${(progress.done / progress.total) * 100}%` }}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <Images className={`w-7 h-7 ${dragging ? 'text-[#FF9900]' : 'text-[#444]'}`} />
+              <p className="text-white text-sm font-medium">
+                {dragging ? 'Drop to add' : batch.length ? 'Add more photos' : 'Drag & drop photos or a folder here'}
+              </p>
+              <p className="text-[#555] text-xs">
+                or click to choose files — hold Ctrl (⌘ on Mac) or Shift to select many · JPG, PNG, WebP, GIF
+              </p>
+            </>
+          )}
+        </button>
+
+        {uploadError && <p className="text-red-400 text-sm mb-4">{uploadError}</p>}
+
+        {batch.length > 0 && (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <p className="text-sm text-white">{batch.length} {batch.length === 1 ? 'photo' : 'photos'} selected</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={clearBatch}
+                  disabled={uploading}
+                  className="px-4 py-2 border border-[#2a2a2a] text-[#888] text-sm rounded hover:border-[#444] hover:text-white disabled:opacity-50 transition-colors"
+                >
+                  Clear all
+                </button>
+                <button
+                  onClick={uploadBatch}
+                  disabled={uploading || !batchEventId}
+                  title={batchEventId ? undefined : 'Choose an event first'}
+                  className="flex items-center gap-2 px-5 py-2 bg-[#FF9900] text-black font-bold text-sm rounded hover:opacity-90 disabled:opacity-50 transition-opacity"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  {uploading ? 'Uploading…' : `Upload ${batch.length} ${batch.length === 1 ? 'photo' : 'photos'}`}
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+              {batch.map(b => (
+                <div key={b.preview} className="relative group aspect-square overflow-hidden rounded border border-[#1e1e1e]">
+                  <img src={b.preview} alt={b.file.name} className="w-full h-full object-cover" />
+                  {!uploading && (
+                    <button
+                      onClick={() => removeFromBatch(b.preview)}
+                      title="Remove from upload"
+                      aria-label={`Remove ${b.file.name}`}
+                      className="absolute top-1.5 right-1.5 p-1 bg-black/70 rounded text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     );
   }
@@ -466,12 +690,20 @@ export default function GalleryAdmin() {
           <h1 className="text-xl font-bold text-white">Gallery</h1>
           <p className="text-xs text-[#555] mt-1">{albums.length} albums</p>
         </div>
-        <button
-          onClick={() => openAlbumForm()}
-          className="flex items-center gap-2 px-4 py-2 bg-[#FF9900] text-black font-bold text-sm rounded hover:opacity-90 transition-opacity"
-        >
-          <Plus className="w-3.5 h-3.5" /> New Album
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => openAlbumForm()}
+            className="flex items-center gap-2 px-4 py-2 border border-[#2a2a2a] text-[#888] text-sm rounded hover:border-[#444] hover:text-white transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" /> New Album
+          </button>
+          <button
+            onClick={openBatch}
+            className="flex items-center gap-2 px-4 py-2 bg-[#FF9900] text-black font-bold text-sm rounded hover:opacity-90 transition-opacity"
+          >
+            <Images className="w-3.5 h-3.5" /> Upload photos
+          </button>
+        </div>
       </div>
 
       {loading ? (
