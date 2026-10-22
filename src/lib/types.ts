@@ -12,10 +12,18 @@ export interface Event {
   sort_order: number;
 }
 
+export type TeamGroup = 'exec' | 'leads';
+
+export const TEAM_GROUP_LABELS: Record<TeamGroup, string> = {
+  exec: 'Executive board',
+  leads: 'Team leads',
+};
+
 export interface TeamMember {
   id: string;
   name: string;
   title: string;
+  team_group: TeamGroup;
   linkedin: string;
   photo_url: string | null;
   sort_order: number;

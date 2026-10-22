@@ -1,28 +1,26 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { fetchTeam } from "../../lib/data";
+import { TEAM_GROUP_LABELS, type TeamGroup } from "../../lib/types";
 import type { TeamMember } from "../../lib/types";
 import { JOIN_LINK, PageHero } from "../components/site/Chrome";
 import { PALETTE } from "../site";
 
-type GroupId = "exec" | "leads";
-
-// Team members have no group column, so officers are picked out by title.
-const EXEC_TITLE = /president|treasurer|secretary|chair/i;
+type GroupId = TeamGroup;
 
 const GROUPS: { id: GroupId; title: string; color: string }[] = [
-  { id: "exec", title: "Executive board", color: "#FF9900" },
-  { id: "leads", title: "Team leads", color: "#41B3FF" },
+  { id: "exec", title: TEAM_GROUP_LABELS.exec, color: "#FF9900" },
+  { id: "leads", title: TEAM_GROUP_LABELS.leads, color: "#41B3FF" },
 ];
 
 const FILTERS: { id: "all" | GroupId; label: string }[] = [
   { id: "all", label: "Everyone" },
-  { id: "exec", label: "Executive board" },
-  { id: "leads", label: "Team leads" },
+  ...GROUPS.map((g) => ({ id: g.id, label: g.title })),
 ];
 
+// Set in /admin; members saved before groups existed count as team leads.
 function groupOf(member: TeamMember): GroupId {
-  return EXEC_TITLE.test(member.title) ? "exec" : "leads";
+  return member.team_group === "exec" ? "exec" : "leads";
 }
 
 function initials(name: string) {
