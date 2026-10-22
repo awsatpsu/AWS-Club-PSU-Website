@@ -1,14 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Pencil, Trash2, ArrowLeft, Upload } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { TEAM_GROUP_LABELS, type TeamGroup, type TeamMember } from '../../lib/types';
+import type { TeamMember } from '../../lib/types';
 
 type MemberDraft = Omit<TeamMember, 'id'>;
 
 const BLANK: MemberDraft = {
   name: '',
   title: '',
-  team_group: 'leads',
   linkedin: '',
   photo_url: null,
   sort_order: 0,
@@ -76,25 +75,6 @@ function Form({
             onChange={e => set('name', e.target.value)}
             placeholder="Jane Smith"
           />
-        </Field>
-        <Field label="Group">
-          <div className="flex gap-2">
-            {(Object.keys(TEAM_GROUP_LABELS) as TeamGroup[]).map(g => (
-              <button
-                key={g}
-                type="button"
-                aria-pressed={form.team_group === g}
-                onClick={() => set('team_group', g)}
-                className={`flex-1 px-3 py-2.5 text-sm rounded border transition-colors ${
-                  form.team_group === g
-                    ? 'border-[#FF9900] bg-[#FF9900]/10 text-[#FF9900] font-semibold'
-                    : 'border-[#2a2a2a] text-[#888] hover:border-[#444] hover:text-white'
-                }`}
-              >
-                {TEAM_GROUP_LABELS[g]}
-              </button>
-            ))}
-          </div>
         </Field>
         <Field label="Role / Title">
           <input
@@ -265,9 +245,7 @@ export default function TeamAdmin() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white truncate">{member.name}</p>
-                <p className="text-xs text-[#555] mt-0.5">
-                  {member.title} · {TEAM_GROUP_LABELS[member.team_group] ?? TEAM_GROUP_LABELS.leads}
-                </p>
+                <p className="text-xs text-[#555] mt-0.5">{member.title}</p>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <button

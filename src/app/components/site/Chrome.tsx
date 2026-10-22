@@ -23,7 +23,7 @@ export function BuilderMark({ size = 26 }: { size?: number }) {
 
 const NAV = [
   { to: "/", label: "Home", end: true },
-  { to: "/members", label: "Members", end: false },
+  { to: "/members", label: "Team", end: false },
   { to: "/events", label: "Events", end: false },
   { to: "/gallery", label: "Gallery", end: false },
 ];

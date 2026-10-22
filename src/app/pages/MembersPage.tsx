@@ -1,27 +1,9 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { Link } from "react-router";
 import { fetchTeam } from "../../lib/data";
-import { TEAM_GROUP_LABELS, type TeamGroup } from "../../lib/types";
 import type { TeamMember } from "../../lib/types";
 import { JOIN_LINK, PageHero } from "../components/site/Chrome";
 import { PALETTE } from "../site";
-
-type GroupId = TeamGroup;
-
-const GROUPS: { id: GroupId; title: string; color: string }[] = [
-  { id: "exec", title: TEAM_GROUP_LABELS.exec, color: "#FF9900" },
-  { id: "leads", title: TEAM_GROUP_LABELS.leads, color: "#41B3FF" },
-];
-
-const FILTERS: { id: "all" | GroupId; label: string }[] = [
-  { id: "all", label: "Everyone" },
-  ...GROUPS.map((g) => ({ id: g.id, label: g.title })),
-];
-
-// Set in /admin; members saved before groups existed count as team leads.
-function groupOf(member: TeamMember): GroupId {
-  return member.team_group === "exec" ? "exec" : "leads";
-}
 
 function initials(name: string) {
   return name
@@ -35,24 +17,11 @@ function initials(name: string) {
 
 export default function MembersPage() {
   const [team, setTeam] = useState<TeamMember[] | null>(null);
-  const [filter, setFilter] = useState<"all" | GroupId>("all");
   const [flipped, setFlipped] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchTeam().then(setTeam);
   }, []);
-
-  const groups = GROUPS.filter((g) => filter === "all" || filter === g.id)
-    .map((g, gi) => ({
-      ...g,
-      members: (team ?? [])
-        .filter((m) => groupOf(m) === g.id)
-        .map((m, i) => ({ member: m, color: PALETTE[(gi * 4 + i) % PALETTE.length] })),
-    }))
-    .filter((g) => g.members.length > 0);
-
-  // Cards deal in one after another across both groups.
-  let dealt = 0;
 
   const toggle = (id: string) => setFlipped((f) => ({ ...f, [id]: !f[id] }));
 
@@ -61,60 +30,38 @@ export default function MembersPage() {
       <PageHero
         eyebrow="THE TEAM"
         eyebrowClass="text-brand-pink"
-        title="Meet the builders."
+        title="Meet the team."
         lede="The students who plan the workshops, run the hackathons and keep the group going. Tap a card to flip it."
-        aside={
-          <div role="group" aria-label="Filter members" className="flex flex-wrap border border-line font-mono text-[15px]">
-            {FILTERS.map((f) => {
-              const on = f.id === filter;
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => setFilter(f.id)}
-                  className={`sbg-chip px-5 py-3.5 text-[15px] font-normal cursor-pointer ${
-                    on ? "bg-white text-ink" : "bg-ink text-white hover:bg-ink-raised"
-                  }`}
-                >
-                  {f.label}
-                </button>
-              );
-            })}
-          </div>
-        }
       />
 
       <section>
-        <div className="max-w-[1320px] mx-auto px-4 sm:px-10 pt-[72px] pb-28 flex flex-col gap-[72px]">
+        <div className="max-w-[1320px] mx-auto px-4 sm:px-10 pt-[72px] pb-28">
           {team === null ? (
             <p className="m-0 font-mono text-fog">Loading…</p>
-          ) : groups.length === 0 ? (
+          ) : team.length === 0 ? (
             <p className="m-0 font-mono text-fog">Team info coming soon.</p>
           ) : (
-            groups.map((g) => (
-              <div key={g.id} className="flex flex-col gap-7">
-                <div className="flex items-center gap-4">
-                  <span className="w-4 h-4" style={{ background: g.color }} />
-                  <h2 className="m-0 font-mono font-semibold text-[28px]">{g.title}</h2>
-                  <span className="font-mono text-sm text-fog">
-                    {g.members.length} {g.members.length === 1 ? "person" : "people"}
-                  </span>
-                </div>
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-6">
-                  {g.members.map(({ member, color }) => (
-                    <FlipCard
-                      key={member.id}
-                      member={member}
-                      color={color}
-                      delay={`${(0.35 + Math.min(dealt++, 16) * 0.06).toFixed(2)}s`}
-                      flipped={!!flipped[member.id]}
-                      onFlip={() => toggle(member.id)}
-                    />
-                  ))}
-                </div>
+            <div className="flex flex-col gap-7">
+              <div className="flex items-center gap-4">
+                <span className="w-4 h-4 bg-brand-orange" />
+                <h2 className="m-0 font-mono font-semibold text-[28px]">Executive board</h2>
+                <span className="font-mono text-sm text-fog">
+                  {team.length} {team.length === 1 ? "person" : "people"}
+                </span>
               </div>
-            ))
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-6">
+                {team.map((member, i) => (
+                  <FlipCard
+                    key={member.id}
+                    member={member}
+                    color={PALETTE[i % PALETTE.length]}
+                    delay={`${(0.35 + Math.min(i, 16) * 0.06).toFixed(2)}s`}
+                    flipped={!!flipped[member.id]}
+                    onFlip={() => toggle(member.id)}
+                  />
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </section>
@@ -122,7 +69,7 @@ export default function MembersPage() {
       <section className="bg-brand-mint text-ink">
         <div className="max-w-[1320px] mx-auto px-4 sm:px-10 py-20 flex flex-wrap items-center justify-between gap-8">
           <p className="m-0 flex-[1_1_560px] font-mono text-[28px] sm:text-4xl leading-[1.2] font-medium">
-            Want your card on this page? Every member can lead.
+            Want to build with us? Everyone is welcome.
           </p>
           <Link to={JOIN_LINK} className="sbg-btn bg-ink text-white no-underline font-mono font-bold text-[17px] px-8 py-[18px]">
             Join us <span className="sbg-arrow" aria-hidden="true">→</span>

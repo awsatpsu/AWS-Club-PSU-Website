@@ -19,7 +19,6 @@ create table if not exists team_members (
   id uuid default gen_random_uuid() primary key,
   name text not null,
   title text not null,
-  team_group text not null default 'leads' check (team_group in ('exec', 'leads')),
   linkedin text default '',
   photo_url text,
   sort_order int default 0,
