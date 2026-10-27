@@ -30,7 +30,7 @@ export default function EventsPage() {
       />
 
       <section className={past.length > 0 ? "border-b border-line" : ""}>
-        <div className={`max-w-[1320px] mx-auto px-4 sm:px-10 pt-[72px] flex flex-col gap-8 ${past.length > 0 ? "pb-[72px]" : "pb-28"}`}>
+        <div className={`max-w-[1320px] mx-auto px-4 sm:px-10 pt-9 sm:pt-[72px] flex flex-col gap-5 sm:gap-8 ${past.length > 0 ? "pb-12 sm:pb-[72px]" : "pb-14 sm:pb-28"}`}>
           <SectionTitle color="#FF9900" title="Coming up" />
           {upcoming === null ? (
             <p className="m-0 font-mono text-fog">Loading…</p>
@@ -44,7 +44,7 @@ export default function EventsPage() {
 
       {past.length > 0 && (
         <section>
-          <div className="max-w-[1320px] mx-auto px-4 sm:px-10 pt-[72px] pb-28 flex flex-col gap-8">
+          <div className="max-w-[1320px] mx-auto px-4 sm:px-10 pt-12 pb-14 sm:pt-[72px] sm:pb-28 flex flex-col gap-5 sm:gap-8">
             <SectionTitle color="#A9B4C0" title="Past events" />
             <EventGrid events={past} albumByEvent={albumByEvent} past />
           </div>
@@ -56,9 +56,9 @@ export default function EventsPage() {
 
 function SectionTitle({ color, title }: { color: string; title: string }) {
   return (
-    <div className="flex items-center gap-4">
-      <span className="w-4 h-4" style={{ background: color }} />
-      <h2 className="m-0 font-mono font-semibold text-[28px]">{title}</h2>
+    <div className="flex items-center gap-3 sm:gap-4">
+      <span className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ background: color }} />
+      <h2 className="m-0 font-mono font-semibold text-[22px] sm:text-[28px]">{title}</h2>
     </div>
   );
 }
@@ -103,11 +103,11 @@ function EventGrid({
 function EventItem({ event, album, past }: { event: Event; album?: AlbumWithCount; past: boolean }) {
   const meta = [formatDate(event.date), event.time, event.location].filter(Boolean).join(" · ");
   return (
-    <div className="h-full bg-ink p-7 flex flex-col gap-3">
+    <div className="h-full bg-ink p-5 sm:p-7 flex flex-col gap-3">
       {event.tag && <EventTag tag={event.tag} />}
-      <h3 className="m-0 font-mono text-[22px] font-semibold leading-tight">{event.title}</h3>
-      {meta && <p className="m-0 font-mono text-[13px] text-fog">{meta}</p>}
-      {event.description && <p className="m-0 text-mist">{event.description}</p>}
+      <h3 className="m-0 font-mono text-xl sm:text-[22px] font-semibold leading-tight">{event.title}</h3>
+      {meta && <p className="m-0 font-mono text-xs sm:text-[13px] text-fog">{meta}</p>}
+      {event.description && <p className="m-0 text-[15px] sm:text-[17px] text-mist">{event.description}</p>}
       {!past && event.capacity && <p className="m-0 font-mono text-[13px] text-fog">{event.capacity}</p>}
       {(album || (!past && event.rsvp_url)) && (
         <div className="mt-auto pt-2 flex flex-wrap items-center gap-x-6 gap-y-3">

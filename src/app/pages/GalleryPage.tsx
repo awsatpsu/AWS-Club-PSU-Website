@@ -20,13 +20,13 @@ export default function GalleryPage() {
       />
 
       <section>
-        <div className="max-w-[1320px] mx-auto px-4 sm:px-10 pt-[72px] pb-28">
+        <div className="max-w-[1320px] mx-auto px-4 sm:px-10 pt-7 pb-14 sm:pt-[72px] sm:pb-28">
           {albums === null ? (
             <p className="m-0 font-mono text-fog">Loading…</p>
           ) : albums.length === 0 ? (
             <p className="m-0 font-mono text-fog">Photos coming soon — check back after our next event.</p>
           ) : (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] max-sm:grid-cols-1 gap-8">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] max-sm:grid-cols-1 gap-5 sm:gap-8">
               {albums.map((album, i) => (
                 <AlbumCard key={album.id} album={album} index={i} />
               ))}

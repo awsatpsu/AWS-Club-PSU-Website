@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router";
-import { SiteHeader, SiteFooter } from "./components/site/Chrome";
+import { MobileJoinBar, SiteHeader, SiteFooter } from "./components/site/Chrome";
 import HomePage from "./pages/HomePage";
 import MembersPage from "./pages/MembersPage";
 import EventsPage from "./pages/EventsPage";
@@ -38,6 +38,7 @@ export default function App() {
         </Routes>
       </main>
       <SiteFooter />
+      <MobileJoinBar />
     </div>
   );
 }

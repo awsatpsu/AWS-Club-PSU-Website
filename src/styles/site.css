@@ -83,7 +83,6 @@
   animation-fill-mode: both, none;
   transition: rotate .35s cubic-bezier(.34, 1.56, .64, 1), scale .35s cubic-bezier(.34, 1.56, .64, 1);
 }
-.sbg-pix:hover { rotate: 90deg; scale: 1.12; z-index: 1; }
 .sbg-ghost { animation: sbgGhost 5s ease-in-out infinite; }
 .sbg-cursor {
   display: inline-block; width: .5em; height: .9em; margin-left: .12em; vertical-align: -.08em;
@@ -95,56 +94,39 @@
   position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 10px;
   transition: transform .18s cubic-bezier(.2, .8, .2, 1), box-shadow .18s cubic-bezier(.2, .8, .2, 1);
 }
-.sbg-btn:hover { transform: translate(-4px, -4px); box-shadow: 5px 5px 0 #FFFFFF; }
-.sbg-btn:active { transform: translate(0, 0); box-shadow: 0 0 0 #FFFFFF; transition-duration: .06s; }
 .sbg-btn::after {
   content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 35%; pointer-events: none;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .6), transparent);
   transform: translateX(-160%) skewX(-20deg);
 }
-.sbg-btn:hover::after { animation: sbgShine .65s ease-out; }
 .sbg-ring { animation: sbgRing 1.1s ease-out 1.9s 2; }
 .sbg-arrow { display: inline-block; transition: transform .22s cubic-bezier(.34, 1.56, .64, 1); }
-.sbg-btn:hover .sbg-arrow, .sbg-ghostbtn:hover .sbg-arrow, .sbg-lift:hover .sbg-arrow,
-.sbg-card:hover .sbg-arrow, .sbg-textlink:hover .sbg-arrow { transform: translateX(6px); }
-.sbg-back:hover .sbg-arrow { transform: translateX(-6px); }
 .sbg-ghostbtn, .sbg-outline {
   background: linear-gradient(#FFFFFF, #FFFFFF) no-repeat left center / 0% 100%;
   transition: background-size .3s cubic-bezier(.2, .8, .2, 1), color .3s;
 }
 .sbg-ghostbtn { display: inline-flex; align-items: center; gap: 10px; }
-.sbg-ghostbtn:hover, .sbg-outline:hover { background-size: 100% 100%; color: #151D25 !important; }
 .sbg-link { position: relative; }
 .sbg-link::after {
   content: ""; position: absolute; left: 14px; right: 14px; bottom: 4px; height: 2px;
   background: var(--color-brand-orange); transform: scaleX(0); transform-origin: left;
   transition: transform .25s cubic-bezier(.2, .8, .2, 1);
 }
-.sbg-link:hover::after { transform: scaleX(1); }
 .sbg-chip { transition: box-shadow .2s, background-color .2s; }
-.sbg-chip:hover { box-shadow: inset 0 -4px 0 var(--color-brand-pink); }
 .sbg-chip:active { box-shadow: inset 0 -8px 0 var(--color-brand-pink); }
 
 /* Cards: sbg-card deals in and lifts with a colored shadow (--c); sbg-lift only lifts. */
 .sbg-card { animation: sbgDeal .7s cubic-bezier(.2, .8, .2, 1) both; }
 .sbg-card, .sbg-lift { transition: translate .22s cubic-bezier(.2, .8, .2, 1), box-shadow .22s cubic-bezier(.2, .8, .2, 1); }
-.sbg-card:hover, .sbg-lift:hover { translate: -6px -6px; box-shadow: 6px 6px 0 var(--c, #FF9900); }
-.sbg-card:active, .sbg-lift:active { translate: 0 0; box-shadow: 0 0 0 var(--c, #FF9900); }
 .sbg-zoom { transition: scale .5s cubic-bezier(.2, .8, .2, 1); }
-.sbg-card:hover .sbg-zoom, .sbg-lift:hover .sbg-zoom { scale: 1.05; }
 .sbg-flipicon { display: inline-block; }
-.sbg-card:hover .sbg-flipicon { animation: sbgSpin .6s cubic-bezier(.34, 1.56, .64, 1); }
 .sbg-cell { transition: background-color .25s; }
-.sbg-cell:hover { background-color: var(--color-ink-raised) !important; }
 .sbg-num { transition: rotate .4s cubic-bezier(.34, 1.56, .64, 1), scale .4s cubic-bezier(.34, 1.56, .64, 1); }
-.sbg-cell:hover .sbg-num, a:hover > .sbg-num { rotate: 90deg; scale: 1.1; }
 .sbg-wcell { transition: background-color .25s; }
-.sbg-wcell:hover { background-color: #F1F4F7 !important; }
 .sbg-bar {
   display: block; height: 3px; width: 32px; background: var(--color-brand-orange);
   transition: width .3s cubic-bezier(.2, .8, .2, 1);
 }
-.sbg-wcell:hover .sbg-bar { width: 100%; }
 .sbg-check { animation: sbgPixPop .6s cubic-bezier(.34, 1.56, .64, 1) both; }
 
 /* Album photos and the lightbox */
@@ -152,13 +134,79 @@
   animation: sbgPhotoPop .55s cubic-bezier(.34, 1.56, .64, 1) both;
   transition: scale .25s cubic-bezier(.2, .8, .2, 1), filter .25s, box-shadow .25s;
 }
-.sbg-photo:hover { scale: 1.03; filter: brightness(1.12); box-shadow: 0 0 0 3px #FFFFFF; z-index: 1; }
 .sbg-lightbox { animation: sbgFade .25s ease-out both; }
 .sbg-lbimg { animation: sbgPhotoPop .4s cubic-bezier(.34, 1.56, .64, 1) both; }
 
+/* Hover effects only where there's a real pointer, so they don't stick after a tap on touch screens. */
+@media (hover: hover) {
+  .sbg-pix:hover { rotate: 90deg; scale: 1.12; z-index: 1; }
+  .sbg-btn:hover { transform: translate(-4px, -4px); box-shadow: 5px 5px 0 #FFFFFF; }
+  .sbg-btn:hover::after { animation: sbgShine .65s ease-out; }
+  .sbg-btn:hover .sbg-arrow, .sbg-ghostbtn:hover .sbg-arrow, .sbg-lift:hover .sbg-arrow,
+  .sbg-card:hover .sbg-arrow, .sbg-textlink:hover .sbg-arrow { transform: translateX(6px); }
+  .sbg-back:hover .sbg-arrow { transform: translateX(-6px); }
+  .sbg-ghostbtn:hover, .sbg-outline:hover { background-size: 100% 100%; color: #151D25 !important; }
+  .sbg-link:hover::after { transform: scaleX(1); }
+  .sbg-chip:hover { box-shadow: inset 0 -4px 0 var(--color-brand-pink); }
+  .sbg-card:hover, .sbg-lift:hover { translate: -6px -6px; box-shadow: 6px 6px 0 var(--c, #FF9900); }
+  .sbg-card:hover .sbg-zoom, .sbg-lift:hover .sbg-zoom { scale: 1.05; }
+  .sbg-card:hover .sbg-flipicon { animation: sbgSpin .6s cubic-bezier(.34, 1.56, .64, 1); }
+  .sbg-cell:hover { background-color: var(--color-ink-raised) !important; }
+  .sbg-cell:hover .sbg-num, a:hover > .sbg-num { rotate: 90deg; scale: 1.1; }
+  .sbg-wcell:hover { background-color: #F1F4F7 !important; }
+  .sbg-wcell:hover .sbg-bar { width: 100%; }
+  .sbg-photo:hover { scale: 1.03; filter: brightness(1.12); box-shadow: 0 0 0 3px #FFFFFF; z-index: 1; }
+}
+/* Pressed states come after hover so they win while the pointer is down. */
+.sbg-btn:active { transform: translate(0, 0); box-shadow: 0 0 0 #FFFFFF; transition-duration: .06s; }
+.sbg-card:active, .sbg-lift:active { translate: 0 0; box-shadow: 0 0 0 var(--c, #FF9900); }
+
 .site .sbg-btn:focus-visible, .site .sbg-card:focus-visible, .site .sbg-photo:focus-visible,
 .site .sbg-outline:focus-visible, .site .sbg-ghostbtn:focus-visible, .site .sbg-chip:focus-visible,
-.site .sbg-link:focus-visible { outline: 3px solid var(--color-brand-sky); outline-offset: 3px; }
+.site .sbg-link:focus-visible, .site .sbg-burger:focus-visible, .site .sbg-press:focus-visible { outline: 3px solid var(--color-brand-sky); outline-offset: 3px; }
+
+/* ── Phones, below Tailwind's sm breakpoint (the mobile artboards) ─────────
+   Smaller grid, buttons that sit on a white offset and press into it,
+   tap feedback, the burger menu and the sticky join bar. */
+
+@keyframes sbgDriftSm { from { background-position: 0 0, 0 0; } to { background-position: 0 48px, 48px 0; } }
+@keyframes sbgSlide { from { opacity: 0; transform: translateX(-32px); } to { opacity: 1; transform: none; } }
+@keyframes sbgRise { from { opacity: 0; transform: translateY(100%); } to { opacity: 1; transform: none; } }
+@keyframes sbgNudge { 0%, 100% { transform: none; } 50% { transform: translateX(6px); } }
+@keyframes sbgSpinIdle { 0%, 70% { rotate: 0deg; } 85%, 100% { rotate: 360deg; } }
+
+.sbg-scroll { scrollbar-width: none; }
+.sbg-scroll::-webkit-scrollbar { display: none; }
+.sbg-press { transition: transform .15s, background-color .2s; }
+.sbg-press:active { transform: scale(.97); background-color: var(--color-ink-raised) !important; }
+.sbg-nudge { display: inline-block; animation: sbgNudge 1.4s ease-in-out infinite; }
+.sbg-burger span {
+  display: block; width: 22px; height: 2px; background: #FFFFFF;
+  transition: transform .3s cubic-bezier(.2, .8, .2, 1), opacity .2s;
+}
+.sbg-burger[aria-expanded="true"] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.sbg-burger[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+.sbg-burger[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+.sbg-menu { animation: sbgFade .25s ease-out both; }
+.sbg-menuitem { animation: sbgSlide .45s cubic-bezier(.2, .8, .2, 1) both; }
+.sbg-joinbar { animation: sbgRise .5s cubic-bezier(.2, .8, .2, 1) 1s both; }
+
+@media (width < 40rem) {
+  .site { font-size: 16px; -webkit-tap-highlight-color: transparent; }
+  .site-grid-bg { background-size: 48px 48px; }
+  .sbg-drift { animation-name: sbgDriftSm; }
+
+  .sbg-btn { box-shadow: 4px 4px 0 #FFFFFF; transition-duration: .15s; }
+  .sbg-btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 #FFFFFF; }
+  .sbg-btn::after { animation: sbgShine 1s ease-out 1.4s 1 both; }
+  .sbg-ghostbtn:active, .sbg-outline:active { background-size: 100% 100%; color: #151D25 !important; }
+  .sbg-chip:active { box-shadow: inset 0 -4px 0 var(--color-brand-pink); }
+  .sbg-card:active, .sbg-lift:active { translate: 0 0; box-shadow: none; scale: .96; }
+  .sbg-card, .sbg-lift { transition: scale .15s cubic-bezier(.2, .8, .2, 1); }
+  .sbg-pix:active { rotate: 90deg; scale: 1.12; z-index: 1; }
+  .sbg-flipicon { animation: sbgSpinIdle 4s cubic-bezier(.34, 1.56, .64, 1) 2s infinite; }
+  .sbg-photo:active { scale: .97; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .site *, .site *::before, .site *::after { animation: none !important; transition: none !important; }

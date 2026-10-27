@@ -48,3 +48,11 @@ export const TAG_COLORS: Record<string, string> = {
 };
 
 export const TAG_OPTIONS = Object.keys(TAG_COLORS);
+
+export interface Profile {
+  id: string;
+  email: string;
+  role: 'admin' | 'member';
+  approved: boolean;
+  created_at: string;
+}
