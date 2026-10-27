@@ -210,7 +210,22 @@ export default function AdminApp() {
   }
 
   if (!session) return <AdminLogin />;
-  if (!profile?.approved) return <PendingApproval email={session.user.email ?? ''} />;
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center gap-4 px-4 text-center">
+        <p className="text-sm text-red-400">
+          Couldn't load the account for {session.user.email}. Has supabase-migrations/006_member_accounts.sql been run?
+        </p>
+        <button
+          onClick={() => supabase.auth.signOut()}
+          className="text-xs text-[#555] hover:text-[#aaa] transition-colors"
+        >
+          Sign out
+        </button>
+      </div>
+    );
+  }
+  if (!profile.approved) return <PendingApproval email={profile.email} />;
 
   const isAdmin = profile.role === 'admin';
 

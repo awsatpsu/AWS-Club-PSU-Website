@@ -30,8 +30,10 @@ insert into profiles (id, email, created_at)
 select id, email, created_at from auth.users
 on conflict (id) do nothing;
 
+-- Only when no admin exists yet, so re-running this never changes who the admin is.
 update profiles set role = 'admin', approved = true
-where id = (select id from auth.users order by created_at limit 1);
+where id = (select id from auth.users order by created_at limit 1)
+  and not exists (select 1 from profiles where role = 'admin');
 
 -- security definer so policies on profiles can call these without recursing.
 create or replace function public.is_approved() returns boolean
